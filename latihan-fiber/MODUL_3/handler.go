@@ -111,3 +111,99 @@ func (h *StudentHandler) Create(c *fiber.Ctx) error {
 	return created(c, "student berhasil dibuat", baru,
 		"/api/v1/students/"+strconv.Itoa(baru.ID))
 }
+
+func (h *StudentHandler) Replace(c *fiber.Ctx) error {
+	ctx, cancel := reqCtx(c)
+	defer cancel()
+
+	id, valid := paramID(c)
+	if !valid {
+		return fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+	}
+
+	var req model.ReplaceStudentRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+	}
+
+	errs := map[string]string{}
+	if strings.TrimSpace(req.Name) == "" {
+		errs["name"] = "wajib diisi pada PUT"
+	}
+	if strings.TrimSpace(req.Grade) == "" {
+		errs["grade"] = "wajib diisi pada PUT"
+	}
+	if len(errs) > 0 {
+		return failValidation(c, errs)
+	}
+
+	hasil, err := h.repo.Update(ctx, model.Student{
+		ID: id, Name: req.Name, Grade: req.Grade, IsActive: req.IsActive,
+	})
+	if err != nil {
+		return terjemahkanErrorStudent(c, err, "gagal memperbarui student")
+	}
+	return ok(c, "student berhasil diganti seluruhnya", hasil)
+}
+
+func (h *StudentHandler) Patch(c *fiber.Ctx) error {
+	ctx, cancel := reqCtx(c)
+	defer cancel()
+
+	id, valid := paramID(c)
+	if !valid {
+		return fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+	}
+
+	var req model.PatchStudentRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+	}
+
+	if req.Name == nil && req.Grade == nil && req.IsActive == nil {
+		return fail(c, fiber.StatusBadRequest, "tidak ada field yang diubah")
+	}
+
+	// PATCH = baca dulu, ubah seperlunya, simpan kembali.
+	saatIni, err := h.repo.FindByID(ctx, id)
+	if err != nil {
+		return terjemahkanErrorStudent(c, err, "gagal mengambil data student")
+	}
+
+	if req.Name != nil {
+		if strings.TrimSpace(*req.Name) == "" {
+			return failValidation(c, map[string]string{"name": "tidak boleh kosong"})
+		}
+		saatIni.Name = *req.Name
+	}
+	if req.Grade != nil {
+		if strings.TrimSpace(*req.Grade) == "" {
+			return failValidation(c, map[string]string{"grade": "tidak boleh kosong"})
+		}
+		saatIni.Grade = *req.Grade
+	}
+	if req.IsActive != nil {
+		saatIni.IsActive = *req.IsActive
+	}
+
+	hasil, err := h.repo.Update(ctx, saatIni)
+	if err != nil {
+		return terjemahkanErrorStudent(c, err, "gagal memperbarui student")
+	}
+	return ok(c, "student berhasil diperbarui sebagian", hasil)
+}
+
+func (h *StudentHandler) Delete(c *fiber.Ctx) error {
+	ctx, cancel := reqCtx(c)
+	defer cancel()
+
+	id, valid := paramID(c)
+	if !valid {
+		return fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+	}
+
+	if err := h.repo.Delete(ctx, id); err != nil {
+		return terjemahkanErrorStudent(c, err, "gagal menghapus student")
+	}
+	return noContent(c)
+}
