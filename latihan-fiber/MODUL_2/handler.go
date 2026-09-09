@@ -141,3 +141,111 @@ func createStudent(c *fiber.Ctx) error {
 		"/api/v1/students/"+strconv.Itoa(baru.ID))
 }
 
+func replaceStudent(c *fiber.Ctx) error {
+	id, valid := paramID(c)
+	if !valid {
+		return fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+	}
+	i := findStudentIndex(id)
+	if i == -1 {
+		return fail(c, fiber.StatusNotFound, "mahasiswa tidak ditemukan")
+	}
+
+	var req ReplaceStudentRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+	}
+
+	req.NIM = strings.TrimSpace(req.NIM)
+	req.Nama = strings.TrimSpace(req.Nama)
+
+	errs := map[string]string{}
+	if req.NIM == "" {
+		errs["nim"] = "wajib diisi pada PUT"
+	}
+	if req.Nama == "" {
+		errs["name"] = "wajib diisi pada PUT"
+	}
+	if req.Nilai < 0 || req.Nilai > 100 {
+		errs["grade"] = "wajib diisi dan berada di antara 0-100 pada PUT"
+	}
+	if len(errs) > 0 {
+		return failValidation(c, errs)
+	}
+
+	if req.NIM != students[i].NIM {
+		if j := findStudentIndexByNIM(req.NIM); j != -1 {
+			return fail(c, fiber.StatusConflict, "nim sudah dipakai")
+		}
+	}
+
+	students[i].NIM = req.NIM
+	students[i].Nama = req.Nama
+	students[i].Nilai = req.Nilai
+	students[i].IsActive = req.IsActive
+
+	return ok(c, "mahasiswa berhasil diganti seluruhnya", students[i])
+}
+
+func patchStudent(c *fiber.Ctx) error {
+	id, valid := paramID(c)
+	if !valid {
+		return fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+	}
+	i := findStudentIndex(id)
+	if i == -1 {
+		return fail(c, fiber.StatusNotFound, "mahasiswa tidak ditemukan")
+	}
+
+	var req PatchStudentRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+	}
+
+	if req.NIM == nil && req.Nama == nil && req.Nilai == nil && req.IsActive == nil {
+		return fail(c, fiber.StatusBadRequest, "tidak ada field yang diubah")
+	}
+
+	if req.NIM != nil {
+		nim := strings.TrimSpace(*req.NIM)
+		if nim == "" {
+			return failValidation(c, map[string]string{"nim": "tidak boleh kosong"})
+		}
+		if nim != students[i].NIM {
+			if j := findStudentIndexByNIM(nim); j != -1 {
+				return fail(c, fiber.StatusConflict, "nim sudah dipakai")
+			}
+		}
+		students[i].NIM = nim
+	}
+	if req.Nama != nil {
+		if strings.TrimSpace(*req.Nama) == "" {
+			return failValidation(c, map[string]string{"name": "tidak boleh kosong"})
+		}
+		students[i].Nama = *req.Nama
+	}
+	if req.Nilai != nil {
+		if *req.Nilai < 0 || *req.Nilai > 100 {
+			return failValidation(c, map[string]string{"grade": "harus di antara 0 dan 100"})
+		}
+		students[i].Nilai = *req.Nilai
+	}
+	if req.IsActive != nil {
+		students[i].IsActive = *req.IsActive
+	}
+
+	return ok(c, "mahasiswa berhasil diperbarui sebagian", students[i])
+}
+
+func deleteStudent(c *fiber.Ctx) error {
+	id, valid := paramID(c)
+	if !valid {
+		return fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+	}
+	i := findStudentIndex(id)
+	if i == -1 {
+		return fail(c, fiber.StatusNotFound, "mahasiswa tidak ditemukan")
+	}
+	students = append(students[:i], students[i+1:]...)
+	return noContent(c)
+}
