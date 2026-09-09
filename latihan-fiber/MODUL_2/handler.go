@@ -57,20 +57,24 @@ func listStudents(c *fiber.Ctx) error {
 	}
 
 	sort.SliceStable(hasil, func(i, j int) bool {
-		var lebihKecil bool
-		switch q.Sort {
-		case "name":
-			lebihKecil = hasil[i].Nama < hasil[j].Nama
-		case "grade":
-			lebihKecil = hasil[i].Nilai < hasil[j].Nilai
-		default:
-			lebihKecil = hasil[i].ID < hasil[j].ID
-		}
-		if q.Order == "desc" {
-			return !lebihKecil
-		}
-		return lebihKecil
-	})
+    var lebihKecil bool
+    switch q.Sort {
+    case "name":
+        lebihKecil = hasil[i].Nama < hasil[j].Nama
+    case "grade":
+        lebihKecil = hasil[i].Nilai < hasil[j].Nilai
+    case "nim":
+        lebihKecil = hasil[i].NIM < hasil[j].NIM
+    case "is_active":
+        lebihKecil = !hasil[i].IsActive && hasil[j].IsActive
+    default:
+        lebihKecil = hasil[i].ID < hasil[j].ID
+    }
+    if q.Order == "desc" {
+        return !lebihKecil
+    }
+    return lebihKecil
+})
 
 	total := len(hasil)
 	totalPages := (total + q.Limit - 1) / q.Limit
