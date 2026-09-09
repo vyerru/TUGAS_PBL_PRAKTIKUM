@@ -32,7 +32,7 @@ type PatchStudentRequest struct {
 }
 
 type WebResponse struct {
-	Succsess bool `json:"success"`
+	Success bool `json:"success"`
 	Message string `json:"message"`
 	Data any `json:"data,omitempty"`
 	Meta *Meta `json:"meta,omitempty"`
