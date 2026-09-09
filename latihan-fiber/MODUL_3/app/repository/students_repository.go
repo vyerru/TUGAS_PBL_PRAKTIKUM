@@ -104,3 +104,73 @@ func (r *studentPostgresRepository) FindAll(
 
 	return hasil, total, nil
 }
+
+func (r *studentPostgresRepository) FindByID(
+	ctx context.Context, id int,
+) (model.Student, error) {
+	var s model.Student
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, nim, name, grade, is_active, created_at
+		 FROM students WHERE id = $1`, id,
+	).Scan(&s.ID, &s.NIM, &s.Name, &s.Grade, &s.IsActive, &s.CreatedAt)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Student{}, ErrNotFound
+		}
+		return model.Student{}, fmt.Errorf("mengambil student: %w", err)
+	}
+	return s, nil
+}
+
+func (r *studentPostgresRepository) Create(
+	ctx context.Context, s model.Student,
+) (model.Student, error) {
+	err := r.pool.QueryRow(ctx,
+		`INSERT INTO students (nim, name, grade, is_active)
+		 VALUES ($1, $2, $3, $4)
+		 RETURNING id, created_at`,
+		s.NIM, s.Name, s.Grade, s.IsActive,
+	).Scan(&s.ID, &s.CreatedAt)
+
+	if err != nil {
+		if isUniqueViolation(err) {
+			return model.Student{}, ErrDuplicate
+		}
+		return model.Student{}, fmt.Errorf("menyimpan student: %w", err)
+	}
+	return s, nil
+}
+
+func (r *studentPostgresRepository) Update(
+	ctx context.Context, s model.Student,
+) (model.Student, error) {
+	err := r.pool.QueryRow(ctx,
+		`UPDATE students SET name = $1, grade = $2, is_active = $3
+		 WHERE id = $4
+		 RETURNING id, nim, name, grade, is_active, created_at`,
+		s.Name, s.Grade, s.IsActive, s.ID,
+	).Scan(&s.ID, &s.NIM, &s.Name, &s.Grade, &s.IsActive, &s.CreatedAt)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Student{}, ErrNotFound
+		}
+		if isUniqueViolation(err) {
+			return model.Student{}, ErrDuplicate
+		}
+		return model.Student{}, fmt.Errorf("memperbarui student: %w", err)
+	}
+	return s, nil
+}
+
+func (r *studentPostgresRepository) Delete(ctx context.Context, id int) error {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM students WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("menghapus student: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
