@@ -88,3 +88,56 @@ func listStudents(c *fiber.Ctx) error {
 	})
 }
 
+func getStudent(c *fiber.Ctx) error {
+	id, valid := paramID(c)
+	if !valid {
+		return fail(c, fiber.StatusBadRequest, "id harus berupa angka positif")
+	}
+	i := findStudentIndex(id)
+	if i == -1 {
+		return fail(c, fiber.StatusNotFound, "mahasiswa tidak ditemukan")
+	}
+	return ok(c, "mahasiswa ditemukan", students[i])
+}
+
+func createStudent(c *fiber.Ctx) error {
+	var req CreateStudentRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fail(c, fiber.StatusBadRequest, "body harus berupa JSON yang valid")
+	}
+
+	req.NIM = strings.TrimSpace(req.NIM)
+	req.Nama = strings.TrimSpace(req.Nama)
+
+	errs := map[string]string{}
+	if req.NIM == "" {
+		errs["nim"] = "wajib diisi"
+	}
+	if req.Nama == "" {
+		errs["name"] = "wajib diisi"
+	}
+	if req.Nilai < 0 || req.Nilai > 100 {
+		errs["grade"] = "harus di antara 0 dan 100"
+	}
+	if len(errs) > 0 {
+		return failValidation(c, errs)
+	}
+
+	if req.NIM != "" && findStudentIndexByNIM(req.NIM) != -1 {
+		return fail(c, fiber.StatusConflict, "nim sudah dipakai")
+	}
+
+	baru := Student{
+		ID:       nextID,
+		NIM:      req.NIM,
+		Nama:     req.Nama,
+		Nilai:    req.Nilai,
+		IsActive: true, 
+	}
+	students = append(students, baru)
+	nextID++
+
+	return created(c, "mahasiswa berhasil dibuat", baru,
+		"/api/v1/students/"+strconv.Itoa(baru.ID))
+}
+
