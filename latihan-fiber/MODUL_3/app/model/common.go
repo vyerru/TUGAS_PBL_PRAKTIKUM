@@ -20,7 +20,6 @@ type Meta struct {
 	TotalPages int `json:"total_pages"`
 }
 
-// WebResponse adalah bentuk baku seluruh response API.
 type WebResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
