@@ -41,3 +41,50 @@ func paramID(c *fiber.Ctx) (int, bool) {
 	}
 	return id, true
 }
+
+func listStudents(c *fiber.Ctx) error {
+	q := parseListQuery(c)
+
+	hasil := []Student{}
+	for _, s := range students {
+		if q.IsActive != nil && s.IsActive != *q.IsActive {
+			continue
+		}
+		if q.Search != "" && !cocokPencarian(s, q.Search) {
+			continue
+		}
+		hasil = append(hasil, s)
+	}
+
+	sort.SliceStable(hasil, func(i, j int) bool {
+		var lebihKecil bool
+		switch q.Sort {
+		case "name":
+			lebihKecil = hasil[i].Nama < hasil[j].Nama
+		case "grade":
+			lebihKecil = hasil[i].Nilai < hasil[j].Nilai
+		default:
+			lebihKecil = hasil[i].ID < hasil[j].ID
+		}
+		if q.Order == "desc" {
+			return !lebihKecil
+		}
+		return lebihKecil
+	})
+
+	total := len(hasil)
+	totalPages := (total + q.Limit - 1) / q.Limit
+	mulai := (q.Page - 1) * q.Limit
+	if mulai > total {
+		mulai = total
+	}
+	akhir := mulai + q.Limit
+	if akhir > total {
+		akhir = total
+	}
+
+	return okList(c, "daftar mahasiswa berhasil diambil", hasil[mulai:akhir], &Meta{
+		Page: q.Page, Limit: q.Limit, Total: total, TotalPages: totalPages,
+	})
+}
+
