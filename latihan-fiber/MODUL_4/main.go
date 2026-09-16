@@ -10,9 +10,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 
-	"MODUL_3/config"
-	"MODUL_3/database"
-	"MODUL_3/app/repository"
+	"MODUL_4/config"
+	"MODUL_4/database"
+	"MODUL_4/app/repository"
 )
 
 func main() {
@@ -28,7 +28,7 @@ func main() {
 
 	// 3. Perakitan: pool -> repository -> handler
 	studentRepository := repository.NewStudentRepository(pool)
-	studentHandler := NewStudentHandler(studentRepository)
+	studentHandler := NewStudentService(studentRepository)
 
 	// 4. Aplikasi Fiber
 	app := fiber.New()
