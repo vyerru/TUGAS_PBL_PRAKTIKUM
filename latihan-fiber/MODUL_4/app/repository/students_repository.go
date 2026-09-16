@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"MODUL_3/app/model" 
+	"MODUL_4/app/model" 
 )
 
 var (

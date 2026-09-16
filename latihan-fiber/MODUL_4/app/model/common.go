@@ -10,6 +10,9 @@ type ListQuery struct {
 }
 
 func (q ListQuery) Offset() int {
+	if q.Page < 1 {
+		return 0
+	}
 	return (q.Page - 1) * q.Limit
 }
 
