@@ -6,10 +6,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"MODUL_4/app/service"
-	"MODUL_4/helper"
-	"MODUL_4/middleware"
-	"MODUL_4/route"
+	"MODUL_5/app/service"
+	"MODUL_5/helper"
+	"MODUL_5/middleware"
+	"MODUL_5/route"
 )
 
 // NewApp merakit aplikasi: instance Fiber, middleware, lalu route.

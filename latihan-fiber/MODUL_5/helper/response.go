@@ -3,7 +3,7 @@ package helper
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"MODUL_4/app/model"
+	"MODUL_5/app/model"
 )
 
 func Success(c *fiber.Ctx, status int, message string, data any) error {

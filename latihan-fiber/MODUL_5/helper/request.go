@@ -8,7 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"MODUL_4/app/model"
+	"MODUL_5/app/model"
 )
 
 // RequestContext memberi timeout untuk setiap operasi database.

@@ -11,7 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 
-	"MODUL_4/helper"
+	"MODUL_5/helper"
 )
 
 // Register memasang seluruh middleware yang berlaku untuk semua route.

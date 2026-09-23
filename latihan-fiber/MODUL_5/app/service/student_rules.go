@@ -3,7 +3,7 @@ package service
 import (
 	"strings"
 
-	"MODUL_4/app/model"
+	"MODUL_5/app/model"
 )
 
 // File ini berisi business rules MURNI: tidak menyentuh fiber.Ctx,

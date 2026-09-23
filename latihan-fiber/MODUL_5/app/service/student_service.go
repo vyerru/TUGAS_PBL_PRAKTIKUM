@@ -7,9 +7,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"MODUL_4/app/model"
-	"MODUL_4/app/repository"
-	"MODUL_4/helper"
+	"MODUL_5/app/model"
+	"MODUL_5/app/repository"
+	"MODUL_5/helper"
 )
 
 // StudentService memegang peran controller (menerima *fiber.Ctx) sekaligus
