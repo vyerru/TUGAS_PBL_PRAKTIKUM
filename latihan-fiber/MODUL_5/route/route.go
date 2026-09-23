@@ -6,35 +6,48 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"MODUL_5/app/service"
+	"MODUL_5/app/service" 
 	"MODUL_5/helper"
 	"MODUL_5/middleware"
 )
 
-// Register memetakan URL ke method pada service. Tidak ada logika bisnis,
-// tidak ada query, tidak ada validasi di sini.
-func Register(app *fiber.App, pool *pgxpool.Pool, studentService *service.StudentService) {
-	api := app.Group("/api/v1")
-	api.Get("/health", healthCheck(pool))
+// Struct Dependencies untuk merapikan parameter yang semakin banyak
+type Dependencies struct {
+	Pool           *pgxpool.Pool
+	JWT            *helper.JWTManager
+	StudentService *service.StudentService
+	AuthService    *service.AuthService
+}
 
-	students := api.Group("/students", middleware.RequireJSON)
-	students.Get("/", studentService.List)
-	students.Get("/:id", studentService.Get)
-	students.Post("/", studentService.Create)
-	students.Put("/:id", studentService.Replace)
-	students.Patch("/:id", studentService.Patch)
-	students.Delete("/:id", studentService.Delete)
+func Register(app *fiber.App, deps Dependencies) {
+	api := app.Group("/api/v1")
+
+	// --- Endpoint Publik ---
+	api.Get("/health", healthCheck(deps.Pool))
+
+	// --- Autentikasi ---
+	auth := api.Group("/auth", middleware.RequireJSON)
+	auth.Post("/register", deps.AuthService.Register)
+	auth.Post("/login", middleware.LoginRateLimiter(), deps.AuthService.Login)
+	auth.Post("/refresh", deps.AuthService.Refresh)
+	auth.Post("/logout", deps.AuthService.Logout)
+	auth.Get("/me", middleware.RequireAuth(deps.JWT), deps.AuthService.Me)
+
+	students := api.Group("/students", middleware.RequireJSON, middleware.RequireAuth(deps.JWT))
+	students.Get("/", deps.StudentService.List)
+	students.Get("/:id", deps.StudentService.Get)
+	students.Post("/", deps.StudentService.Create)
+	students.Put("/:id", deps.StudentService.Replace)
+	students.Patch("/:id", deps.StudentService.Patch)
+	students.Delete("/:id", deps.StudentService.Delete)
 }
 
 func healthCheck(pool *pgxpool.Pool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
 		defer cancel()
-
 		if err := pool.Ping(ctx); err != nil {
-			return helper.Fail(c, fiber.StatusServiceUnavailable,
-				"database tidak dapat dihubungi")
+			return helper.Fail(c, fiber.StatusServiceUnavailable, "database tidak dapat dihubungi")
 		}
 		return helper.Success(c, fiber.StatusOK, "server dan database berjalan", nil)
 	}
