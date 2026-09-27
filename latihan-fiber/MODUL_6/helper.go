@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"MODUL_5/app/model"
+	"MODUL_6/app/model"
 )
 
 func ok(c *fiber.Ctx, message string, data any) error {

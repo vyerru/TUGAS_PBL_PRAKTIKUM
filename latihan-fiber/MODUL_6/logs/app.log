@@ -29,3 +29,7 @@
 {"time":"2026-09-23T19:53:13.70081445+07:00","level":"INFO","msg":"http_request","request_id":"f74cf425-4ee8-4767-abf0-ed35a7b86031","method":"POST","path":"/api/v1/auth/login","status":200,"duration":654551530,"ip":"127.0.0.1"}
 {"time":"2026-09-23T19:54:19.029893919+07:00","level":"INFO","msg":"http_request","request_id":"f84cf425-4ee8-4767-abf0-ed35a7b86031","method":"POST","path":"/api/v1/auth/refresh","status":200,"duration":14235734,"ip":"127.0.0.1"}
 {"time":"2026-09-23T19:55:03.476790971+07:00","level":"INFO","msg":"http_request","request_id":"f94cf425-4ee8-4767-abf0-ed35a7b86031","method":"POST","path":"/api/v1/auth/refresh","status":401,"duration":857427,"ip":"127.0.0.1"}
+{"time":"2026-09-27T22:41:50.887145214+07:00","level":"INFO","msg":"permission dimuat","roles":["admin","staff","user"]}
+{"time":"2026-09-27T22:41:50.8879978+07:00","level":"INFO","msg":"server berjalan","port":"3000"}
+{"time":"2026-09-27T22:41:52.3335807+07:00","level":"INFO","msg":"sinyal berhenti diterima, menutup server"}
+{"time":"2026-09-27T22:41:52.333980982+07:00","level":"INFO","msg":"server berhenti dengan rapi"}
