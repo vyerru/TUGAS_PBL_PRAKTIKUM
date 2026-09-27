@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"MODUL_5/app/model" 
-	"MODUL_5/app/repository"
-	"MODUL_5/helper"
+	"MODUL_6/app/model" 
+	"MODUL_6/app/repository"
+	"MODUL_6/helper"
 )
 
 const refreshTokenBytes = 32

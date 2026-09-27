@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
-	"MODUL_5/app/model"
+	"MODUL_6/app/model"
 	"strconv"
 	"time"
 )

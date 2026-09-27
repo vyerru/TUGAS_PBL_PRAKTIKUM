@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
-	"MODUL_5/helper"
+	"MODUL_6/helper"
 )
 
 // Register memasang seluruh middleware yang berlaku untuk semua route.

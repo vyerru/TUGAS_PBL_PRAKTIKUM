@@ -4,9 +4,9 @@ import (
 	"log/slog"
 
 	"github.com/gofiber/fiber/v2"
-	"MODUL_5/helper"
-	"MODUL_5/middleware"
-	"MODUL_5/route"
+	"MODUL_6/helper"
+	"MODUL_6/middleware"
+	"MODUL_6/route"
 )
 
 // NewApp merakit aplikasi dengan Dependencies terpusat
