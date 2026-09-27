@@ -8,12 +8,12 @@ import (
 	"syscall"
 	"time"
 
-	"MODUL_5/app/repository"
-	"MODUL_5/app/service"
-	"MODUL_5/config"
-	"MODUL_5/database"
-	"MODUL_5/helper"
-	"MODUL_5/route"
+	"MODUL_6/app/repository"
+	"MODUL_6/app/service"
+	"MODUL_6/config"
+	"MODUL_6/database"
+	"MODUL_6/helper"
+	"MODUL_6/route"
 )
 
 const minSecretLength = 32
@@ -22,7 +22,6 @@ func main() {
 	config.LoadEnv()
 	logger := config.NewLogger()
 
-	// Rahasia diperiksa SEBELUM server menyala.
 	jwtSecret := config.GetEnv("JWT_SECRET", "")
 	if len(jwtSecret) < minSecretLength {
 		logger.Error("JWT_SECRET tidak diisi atau terlalu pendek",
@@ -45,21 +44,29 @@ func main() {
 
 	studentRepository := repository.NewStudentRepository(pool)
 	studentService := service.NewStudentService(studentRepository)
-
 	userRepository := repository.NewUserRepository(pool)
 	tokenRepository := repository.NewTokenRepository(pool)
+	roleRepository := repository.NewRoleRepository(pool)
+	rawPermissions, err := roleRepository.LoadPermissions(context.Background())
+	if err != nil {
+		logger.Error("gagal memuat permission", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	permissions := helper.NewPermissionSet(rawPermissions)
+	logger.Info("permission dimuat", slog.Any("roles", permissions.KnownRoles()))
+
+	userService := service.NewUserService(userRepository, permissions)
 	authService := service.NewAuthService(
-		userRepository,
-		tokenRepository,
-		jwtManager,
+		userRepository, tokenRepository, jwtManager, permissions,
 		time.Duration(config.GetEnvInt("JWT_REFRESH_TTL_DAYS", 7))*24*time.Hour,
 	)
 
 	app := config.NewApp(logger, route.Dependencies{
-		Pool:           pool,
-		JWT:            jwtManager,
-		StudentService: studentService,
-		AuthService:    authService,
+		Pool:        pool,
+		JWT:         jwtManager,
+		Permissions: permissions,
+		UserService: userService,
+		AuthService: authService,
 	})
 
 	port := config.GetEnv("APP_PORT", "3000")
