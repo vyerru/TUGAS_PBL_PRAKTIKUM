@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"MODUL_5/app/model"
+	"MODUL_6/app/model"
 )
 
 type TokenRepository interface {
