@@ -42,11 +42,13 @@ func main() {
 		time.Duration(config.GetEnvInt("JWT_ACCESS_TTL_MINUTES", 15))*time.Minute,
 	)
 
+	// 1. Inisialisasi semua repository
 	studentRepository := repository.NewStudentRepository(pool)
-	studentService := service.NewStudentService(studentRepository)
 	userRepository := repository.NewUserRepository(pool)
 	tokenRepository := repository.NewTokenRepository(pool)
 	roleRepository := repository.NewRoleRepository(pool)
+
+	// 2. Muat permissions terlebih dahulu
 	rawPermissions, err := roleRepository.LoadPermissions(context.Background())
 	if err != nil {
 		logger.Error("gagal memuat permission", slog.String("error", err.Error()))
@@ -55,18 +57,24 @@ func main() {
 	permissions := helper.NewPermissionSet(rawPermissions)
 	logger.Info("permission dimuat", slog.Any("roles", permissions.KnownRoles()))
 
-	userService := service.NewUserService(userRepository, permissions)
+	// 3. Inisialisasi Service (StudentService sekarang menerima permissions)
+	studentService := service.NewStudentService(studentRepository, permissions)
+	
+	// AuthService tidak menerima permissions, jadi kita hapus dari argumennya
 	authService := service.NewAuthService(
-		userRepository, tokenRepository, jwtManager, permissions,
+		userRepository, 
+		tokenRepository, 
+		jwtManager, 
 		time.Duration(config.GetEnvInt("JWT_REFRESH_TTL_DAYS", 7))*24*time.Hour,
 	)
 
+	// 4. Masukkan ke dalam Dependencies (UserService dihapus, diganti StudentService)
 	app := config.NewApp(logger, route.Dependencies{
-		Pool:        pool,
-		JWT:         jwtManager,
-		Permissions: permissions,
-		UserService: userService,
-		AuthService: authService,
+		Pool:           pool,
+		JWT:            jwtManager,
+		Permissions:    permissions,
+		AuthService:    authService,
+		StudentService: studentService,
 	})
 
 	port := config.GetEnv("APP_PORT", "3000")
