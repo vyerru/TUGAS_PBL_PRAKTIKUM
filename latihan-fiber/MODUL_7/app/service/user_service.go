@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
 	"MODUL_7/app/model"
 	"MODUL_7/app/repository"
 	"MODUL_7/helper"
+	"github.com/gofiber/fiber/v2"
 )
 
 type UserService struct {
@@ -117,7 +117,7 @@ func (s *UserService) Replace(c *fiber.Ctx) error {
 		return helper.BadRequest("body harus berupa JSON yang valid")
 	}
 
-	if errs := ValidateReplaceUser(req); len(errs) > 0 {
+	if errs := helper.ValidateStruct(req); errs != nil {
 		return helper.Validation(errs)
 	}
 
@@ -153,9 +153,9 @@ func (s *UserService) Patch(c *fiber.Ctx) error {
 	}
 
 	var req model.PatchUserRequest
-	if err := c.BodyParser(&req); err != nil {
-		return helper.BadRequest("body harus berupa JSON yang valid")
-	}
+	if errs := helper.ValidateStruct(req); errs != nil {
+	return helper.Validation(errs)
+}
 
 	if IsEmptyUserPatch(req) {
 		return helper.BadRequest("tidak ada field yang diubah")
