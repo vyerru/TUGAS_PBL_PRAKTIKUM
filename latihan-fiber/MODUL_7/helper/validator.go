@@ -9,7 +9,6 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// validate dibuat SEKALI untuk seluruh aplikasi.
 var validate = newValidator()
 
 func newValidator() *validator.Validate {
