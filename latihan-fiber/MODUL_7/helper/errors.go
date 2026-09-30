@@ -17,6 +17,7 @@ const (
 	CodeNotAcceptable    = "NOT_ACCEPTABLE"
 	CodeTooManyRequests  = "TOO_MANY_REQUESTS"
 	CodeInternal         = "INTERNAL_ERROR"
+	CodeServiceUnavailable = "SERVICE_UNAVAILABLE"
 )
 
 type AppError struct {
@@ -74,4 +75,16 @@ func Internal(cause error) *AppError {
 		Status: fiber.StatusInternalServerError, Code: CodeInternal,
 		Message: "terjadi kesalahan pada server", cause: cause,
 	}
+}
+
+func UnsupportedMediaType(message string) *AppError {
+	return &AppError{Status: fiber.StatusUnsupportedMediaType, Code: CodeUnsupportedMedia, Message: message}
+}
+
+func TooManyRequests(message string) *AppError {
+	return &AppError{Status: fiber.StatusTooManyRequests, Code: CodeTooManyRequests, Message: message}
+}
+
+func ServiceUnavailable(message string) *AppError {
+	return &AppError{Status: fiber.StatusServiceUnavailable, Code: CodeServiceUnavailable, Message: message}
 }
