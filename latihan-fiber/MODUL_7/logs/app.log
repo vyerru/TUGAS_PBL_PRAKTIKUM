@@ -82,3 +82,7 @@
 {"time":"2026-09-30T18:51:08.786831273+07:00","level":"INFO","msg":"http_request","request_id":"0784d22f-63e7-4ff5-ac07-10765fcc2395","method":"GET","path":"/api/v1/students/8","status":403,"duration":1903046,"ip":"127.0.0.1","user_id":5,"role":"user"}
 {"time":"2026-09-30T19:19:35.434632555+07:00","level":"INFO","msg":"sinyal berhenti diterima, menutup server"}
 {"time":"2026-09-30T19:19:35.438911709+07:00","level":"INFO","msg":"server berhenti dengan rapi"}
+{"time":"2026-09-30T19:36:22.142335725+07:00","level":"INFO","msg":"permission dimuat","roles":["admin","staff","user"]}
+{"time":"2026-09-30T19:36:22.142823261+07:00","level":"INFO","msg":"server berjalan","port":"3000"}
+{"time":"2026-09-30T19:36:59.43542894+07:00","level":"INFO","msg":"http_request","request_id":"20595bf8-19f5-4a7c-9692-8c1a5120ac57","method":"GET","path":"/api/v1/users","status":404,"duration":195038,"ip":"127.0.0.1"}
+{"time":"2026-09-30T19:37:08.393296942+07:00","level":"INFO","msg":"http_request","request_id":"21595bf8-19f5-4a7c-9692-8c1a5120ac57","method":"GET","path":"/api/v1/students","status":401,"duration":25144,"ip":"127.0.0.1"}
