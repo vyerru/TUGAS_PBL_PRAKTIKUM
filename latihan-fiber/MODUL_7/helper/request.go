@@ -11,12 +11,10 @@ import (
 	"MODUL_7/app/model"
 )
 
-// RequestContext memberi timeout untuk setiap operasi database.
 func RequestContext(c *fiber.Ctx) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(c.UserContext(), 5*time.Second)
 }
 
-// ParamID membaca parameter :id dari jalur dan memastikan bentuknya benar.
 func ParamID(c *fiber.Ctx) (int, bool) {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil || id < 1 {
@@ -25,13 +23,15 @@ func ParamID(c *fiber.Ctx) (int, bool) {
 	return id, true
 }
 
-// Harus SAMA dengan kolomUrutStudent di repository, supaya request yang lolos
-// di sini juga pasti valid ketika dipakai untuk ORDER BY di repository.
+func RequestID(c *fiber.Ctx) string {
+	id, _ := c.Locals("requestid").(string)
+	return id
+}
+
 var allowedSortStudent = map[string]bool{
 	"id": true, "nim": true, "name": true, "grade": true, "created_at": true,
 }
 
-// ParseListQuery membaca query string dan memberi nilai bawaan yang aman.
 func ParseListQuery(c *fiber.Ctx) model.ListQuery {
 	q := model.ListQuery{
 		Page:   c.QueryInt("page", 1),
