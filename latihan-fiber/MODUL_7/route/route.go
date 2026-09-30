@@ -10,12 +10,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
 type Dependencies struct {
 	Pool           *pgxpool.Pool
 	JWT            *helper.JWTManager
 	Permissions    *helper.PermissionSet
 	AuthService    *service.AuthService
-	StudentService *service.StudentService 
+	StudentService *service.StudentService
+	UserService    *service.UserService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -30,10 +32,18 @@ func Register(app *fiber.App, deps Dependencies) {
 	auth.Post("/logout", deps.AuthService.Logout)
 	auth.Get("/me", middleware.RequireAuth(deps.JWT), deps.AuthService.Me)
 
+	users := api.Group("/users", middleware.RequireJSON, middleware.RequireAuth(deps.JWT))
+	users.Get("/", middleware.RequirePermission(perms, "user:list"), deps.UserService.List)
+	users.Post("/", middleware.RequirePermission(perms, "user:create"), deps.UserService.Create)
+	users.Delete("/:id", middleware.RequirePermission(perms, "user:delete"), deps.UserService.Delete)
+	users.Get("/:id", deps.UserService.Get)
+	users.Put("/:id", deps.UserService.Replace)
+	users.Patch("/:id", deps.UserService.Patch)
+
 	students := api.Group("/students",
 		middleware.RequireJSON,
 		middleware.RequireAuth(deps.JWT))
-	
+
 	perms := deps.Permissions
 
 	students.Get("/",
