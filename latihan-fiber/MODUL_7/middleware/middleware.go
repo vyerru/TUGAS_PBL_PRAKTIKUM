@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"log/slog"
 	"strings"
 	"time"
@@ -10,8 +11,10 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+
 	"MODUL_7/helper"
 )
+
 func Register(app *fiber.App, logger *slog.Logger, allowedOrigins string) {
 	app.Use(requestid.New())
 	app.Use(recover.New())
@@ -36,6 +39,15 @@ func RequestLogger(logger *slog.Logger) fiber.Handler {
 		start := time.Now()
 		err := c.Next()
 		requestID, _ := c.Locals("requestid").(string)
+		status := c.Response().StatusCode()
+		if err != nil {
+			var appErr *helper.AppError
+			if errors.As(err, &appErr) {
+				status = appErr.Status
+			} else {
+				status = fiber.StatusInternalServerError
+			}
+		}
 
 		attrs := []any{
 			slog.String("request_id", requestID),
