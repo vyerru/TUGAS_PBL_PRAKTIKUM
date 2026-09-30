@@ -18,6 +18,7 @@ type UserRepository interface {
 	Update(ctx context.Context, u model.User) (model.User, error)
 	UpdateRole(ctx context.Context, id int, role string) (model.User, error)
 	Delete(ctx context.Context, id int) error
+	FindAfterCursor(ctx context.Context, q model.CursorQuery) ([]model.User, error)
 }
 
 var kolomUrut = map[string]string{

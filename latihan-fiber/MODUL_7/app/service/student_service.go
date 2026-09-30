@@ -206,14 +206,3 @@ func (s *StudentService) Delete(c *fiber.Ctx) error {
 
 	return helper.NoContent(c)
 }
-
-func translateStudentError(c *fiber.Ctx, err error, generalMessage string) error {
-	switch {
-	case errors.Is(err, repository.ErrNotFound):
-		return helper.Fail(c, fiber.StatusNotFound, "student tidak ditemukan")
-	case errors.Is(err, repository.ErrDuplicate):
-		return helper.Fail(c, fiber.StatusConflict, "NIM sudah dipakai")
-	default:
-		return helper.Fail(c, fiber.StatusInternalServerError, generalMessage)
-	}
-}
