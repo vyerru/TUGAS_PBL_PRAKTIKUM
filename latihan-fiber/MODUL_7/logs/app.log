@@ -86,3 +86,5 @@
 {"time":"2026-09-30T19:36:22.142823261+07:00","level":"INFO","msg":"server berjalan","port":"3000"}
 {"time":"2026-09-30T19:36:59.43542894+07:00","level":"INFO","msg":"http_request","request_id":"20595bf8-19f5-4a7c-9692-8c1a5120ac57","method":"GET","path":"/api/v1/users","status":404,"duration":195038,"ip":"127.0.0.1"}
 {"time":"2026-09-30T19:37:08.393296942+07:00","level":"INFO","msg":"http_request","request_id":"21595bf8-19f5-4a7c-9692-8c1a5120ac57","method":"GET","path":"/api/v1/students","status":401,"duration":25144,"ip":"127.0.0.1"}
+{"time":"2026-10-01T00:09:15.938538039+07:00","level":"INFO","msg":"sinyal berhenti diterima, menutup server"}
+{"time":"2026-10-01T00:09:16.047503002+07:00","level":"INFO","msg":"server berhenti dengan rapi"}

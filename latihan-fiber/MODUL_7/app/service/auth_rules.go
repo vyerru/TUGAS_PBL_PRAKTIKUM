@@ -84,8 +84,3 @@ func isValidUsername(username string) bool {
 	}
 	return true
 }
-
-func isValidEmail(email string) bool {
-	// Pengecekan sederhana untuk email
-	return strings.Contains(email, "@") && strings.Contains(email, ".")
-}
