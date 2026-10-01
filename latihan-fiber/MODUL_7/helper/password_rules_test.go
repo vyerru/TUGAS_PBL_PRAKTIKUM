@@ -1,4 +1,4 @@
-package service
+package helper
 
 import (
 	"testing"
@@ -34,9 +34,9 @@ func TestCheckPasswordStrength(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMsg := checkPasswordStrength(tt.password)
+			gotMsg := passwordStrength(tt.password)
 			if gotMsg != tt.wantMsg {
-				t.Errorf("checkPasswordStrength() = %v, want %v", gotMsg, tt.wantMsg)
+				t.Errorf("passwordStrength() = %v, want %v", gotMsg, tt.wantMsg)
 			}
 		})
 	}

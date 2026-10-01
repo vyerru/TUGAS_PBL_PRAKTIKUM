@@ -55,6 +55,7 @@ func main() {
 	permissions := helper.NewPermissionSet(rawPermissions)
 	logger.Info("permission dimuat", slog.Any("roles", permissions.KnownRoles()))
 
+	userService := service.NewUserService(userRepository, permissions)
 	studentService := service.NewStudentService(studentRepository, permissions)
 
 	authService := service.NewAuthService(
@@ -70,6 +71,7 @@ func main() {
 		Permissions:    permissions,
 		AuthService:    authService,
 		StudentService: studentService,
+		UserService: userService,
 	})
 
 	port := config.GetEnv("APP_PORT", "3000")

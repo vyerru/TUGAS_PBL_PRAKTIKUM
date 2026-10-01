@@ -32,14 +32,6 @@ func Register(app *fiber.App, deps Dependencies) {
 	auth.Post("/logout", deps.AuthService.Logout)
 	auth.Get("/me", middleware.RequireAuth(deps.JWT), deps.AuthService.Me)
 
-	users := api.Group("/users", middleware.RequireJSON, middleware.RequireAuth(deps.JWT))
-	users.Get("/", middleware.RequirePermission(perms, "user:list"), deps.UserService.List)
-	users.Post("/", middleware.RequirePermission(perms, "user:create"), deps.UserService.Create)
-	users.Delete("/:id", middleware.RequirePermission(perms, "user:delete"), deps.UserService.Delete)
-	users.Get("/:id", deps.UserService.Get)
-	users.Put("/:id", deps.UserService.Replace)
-	users.Patch("/:id", deps.UserService.Patch)
-
 	students := api.Group("/students",
 		middleware.RequireJSON,
 		middleware.RequireAuth(deps.JWT))
@@ -59,6 +51,24 @@ func Register(app *fiber.App, deps Dependencies) {
 	students.Get("/:id", deps.StudentService.Get)
 	students.Put("/:id", deps.StudentService.Replace)
 	students.Patch("/:id", deps.StudentService.Patch)
+
+	users := api.Group("/users",
+	middleware.RequireJSON,
+	middleware.RequireAuth(deps.JWT))
+
+users.Get("/",
+	middleware.RequirePermission(perms, "user:list"),
+	deps.UserService.List)
+users.Post("/",
+	middleware.RequirePermission(perms, "user:create"),
+	deps.UserService.Create)
+users.Delete("/:id",
+	middleware.RequirePermission(perms, "user:delete"),
+	deps.UserService.Delete)
+
+users.Get("/:id", deps.UserService.Get)
+users.Put("/:id", deps.UserService.Replace)
+users.Patch("/:id", deps.UserService.Patch)
 }
 
 func healthCheck(pool *pgxpool.Pool) fiber.Handler {
@@ -66,7 +76,7 @@ func healthCheck(pool *pgxpool.Pool) fiber.Handler {
 		ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
 		defer cancel()
 		if err := pool.Ping(ctx); err != nil {
-			return helper.Fail(c, fiber.StatusServiceUnavailable, "database tidak dapat dihubungi")
+			return helper.ServiceUnavailable("database tidak dapat dihubungi")
 		}
 		return helper.Success(c, fiber.StatusOK, "server dan database berjalan", nil)
 	}

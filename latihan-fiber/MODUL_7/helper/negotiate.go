@@ -1,3 +1,15 @@
+package helper
+
+import (
+	"encoding/csv"
+	"strconv"
+	"strings"
+
+	"github.com/gofiber/fiber/v2"
+
+	"MODUL_7/app/model"
+)
+
 const (
 	FormatJSON = fiber.MIMEApplicationJSON
 	FormatCSV  = "text/csv"
@@ -17,43 +29,6 @@ func Negotiate(c *fiber.Ctx, offered ...string) (string, error) {
 				strings.Join(offered, ", "))
 	}
 	return chosen, nil
-}
-
-func (s *UserService) List(c *fiber.Ctx) error {
-	format, err := helper.Negotiate(c, helper.FormatJSON, helper.FormatCSV)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := helper.RequestContext(c)
-	defer cancel()
-
-	q, err := helper.ParseCursorQuery(c)
-	if err != nil {
-		return err
-	}
-
-	rows, err := s.repo.FindAfterCursor(ctx, q)
-	if err != nil {
-		return helper.Internal(err)
-	}
-
-	hasMore := len(rows) > q.Limit
-	if hasMore {
-		rows = rows[:q.Limit]
-	}
-
-	if format == helper.FormatCSV {
-		return helper.WriteUsersCSV(c, rows)
-	}
-
-	meta := &model.CursorMeta{Limit: q.Limit, HasMore: hasMore}
-	if hasMore && len(rows) > 0 {
-		last := rows[len(rows)-1]
-		meta.NextCursor = helper.EncodeCursor(last.CreatedAt, last.ID)
-	}
-
-	return helper.SuccessCursor(c, "daftar user berhasil diambil", rows, meta)
 }
 
 func WriteUsersCSV(c *fiber.Ctx, users []model.User) error {

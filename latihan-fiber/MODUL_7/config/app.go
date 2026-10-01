@@ -60,7 +60,7 @@ func newErrorHandler(logger *slog.Logger) fiber.ErrorHandler {
 				slog.String("path", c.Path()),
 				slog.String("code", appErr.Code),
 				slog.Int("status", appErr.Status),
-				slog.String("error", appErr.Error()))
+				slog.String("error", appErr.cause.Error()))
 		} else {
 			logger.Warn("request_rejected",
 				slog.String("request_id", requestID),

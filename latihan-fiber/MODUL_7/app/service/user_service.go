@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 
@@ -21,21 +20,40 @@ func NewUserService(repo repository.UserRepository, perms *helper.PermissionSet)
 }
 
 func (s *UserService) List(c *fiber.Ctx) error {
+	format, err := helper.Negotiate(c, helper.FormatJSON, helper.FormatCSV)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
 
-	q := helper.ParseListQuery(c)
-	users, total, err := s.repo.FindAll(ctx, q)
+	q, err := helper.ParseCursorQuery(c)
+	if err != nil {
+		return err
+	}
+
+	rows, err := s.repo.FindAfterCursor(ctx, q)
 	if err != nil {
 		return helper.Internal(err)
 	}
 
-	return helper.SuccessList(c, "daftar user berhasil diambil", users, &model.Meta{
-		Page:       q.Page,
-		Limit:      q.Limit,
-		Total:      total,
-		TotalPages: CountTotalPages(total, q.Limit),
-	})
+	hasMore := len(rows) > q.Limit
+	if hasMore {
+		rows = rows[:q.Limit]
+	}
+
+	if format == helper.FormatCSV {
+		return helper.WriteUsersCSV(c, rows)
+	}
+
+	meta := &model.CursorMeta{Limit: q.Limit, HasMore: hasMore}
+	if hasMore && len(rows) > 0 {
+		last := rows[len(rows)-1]
+		meta.NextCursor = helper.EncodeCursor(last.CreatedAt, last.ID)
+	}
+
+	return helper.SuccessCursor(c, "daftar user berhasil diambil", rows, meta)
 }
 
 func (s *UserService) Get(c *fiber.Ctx) error {
@@ -76,9 +94,9 @@ func (s *UserService) Create(c *fiber.Ctx) error {
 	req.Username = strings.TrimSpace(req.Username)
 	req.Email = strings.TrimSpace(req.Email)
 
-	if errs := ValidateCreateUser(req); len(errs) > 0 {
-		return helper.Validation(errs)
-	}
+if errs := helper.ValidateStruct(req); errs != nil {
+	return helper.Validation(errs)
+}
 
 	newUser, err := s.repo.Create(ctx, model.User{
 		Username: req.Username,
@@ -153,6 +171,10 @@ func (s *UserService) Patch(c *fiber.Ctx) error {
 	}
 
 	var req model.PatchUserRequest
+	if err := c.BodyParser(&req); err != nil {
+	return helper.BadRequest("body harus berupa JSON yang valid")
+}
+
 	if errs := helper.ValidateStruct(req); errs != nil {
 	return helper.Validation(errs)
 }
@@ -166,10 +188,7 @@ func (s *UserService) Patch(c *fiber.Ctx) error {
 		return translateError(err, "user")
 	}
 
-	updated, errs := ApplyPatchUser(currentData, req)
-	if len(errs) > 0 {
-		return helper.Validation(errs)
-	}
+	updated := ApplyPatchUser(currentData, req)
 
 	result, err := s.repo.Update(ctx, updated)
 	if err != nil {
