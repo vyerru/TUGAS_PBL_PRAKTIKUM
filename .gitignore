@@ -1,2 +1,5 @@
 .env
 latihan-fiber/MODUL_4/logs/
+latihan-fiber/MODUL_7/logs/
+*.pdf
+**/*.pdf
