@@ -40,6 +40,19 @@ func newValidator() *validator.Validate {
 		return passwordStrength(fl.Field().String()) == ""
 	})
 
+	_ = v.RegisterValidation("validnim", func(fl validator.FieldLevel) bool {
+		val := fl.Field().String()
+		if len(val) < 3 || len(val) > 20 {
+			return false
+		}
+		for _, r := range val {
+			if !unicode.IsDigit(r) {
+				return false
+			}
+		}
+		return true
+	})
+
 	return v
 }
 
@@ -98,6 +111,8 @@ func messageFor(fe validator.FieldError) string {
 	case "oneof":
 		return "harus salah satu dari: " +
 			strings.ReplaceAll(fe.Param(), " ", ", ")
+	case "validnim":
+		return "format NIM tidak valid (harus berupa angka 3-20 digit)"
 	default:
 		return "tidak memenuhi aturan " + fe.Tag()
 	}
