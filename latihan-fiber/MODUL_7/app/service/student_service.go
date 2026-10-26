@@ -21,6 +21,11 @@ func NewStudentService(repo repository.StudentRepository, perms *helper.Permissi
 }
 
 func (s *StudentService) List(c *fiber.Ctx) error {
+	format, err := helper.Negotiate(c, helper.FormatJSON, helper.FormatCSV)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := helper.RequestContext(c)
 	defer cancel()
 
@@ -37,6 +42,10 @@ func (s *StudentService) List(c *fiber.Ctx) error {
 	hasMore := len(rows) > q.Limit
 	if hasMore {
 		rows = rows[:q.Limit]
+	}
+
+	if format == helper.FormatCSV {
+		return helper.WriteStudentsCSV(c, rows)
 	}
 
 	meta := &model.CursorMeta{Limit: q.Limit, HasMore: hasMore}
