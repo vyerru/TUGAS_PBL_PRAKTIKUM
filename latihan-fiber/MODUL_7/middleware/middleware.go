@@ -53,7 +53,7 @@ func RequestLogger(logger *slog.Logger) fiber.Handler {
 			slog.String("request_id", requestID),
 			slog.String("method", c.Method()),
 			slog.String("path", c.Path()),
-			slog.Int("status", c.Response().StatusCode()),
+			slog.Int("status", status),
 			slog.Duration("duration", time.Since(start)),
 			slog.String("ip", c.IP()),
 		}

@@ -25,7 +25,7 @@ type ReplaceUserRequest struct {
 }
 
 type PatchUserRequest struct {
-	Username string  `json:"username,omitempty" validate:"omitnil,min=3,max=30,alphanum"`
+	Username *string `json:"username,omitempty" validate:"omitnil,min=3,max=30,alphanum"`
 	Email    *string `json:"email,omitempty" validate:"omitnil,email,max=120"`
 	IsActive *bool   `json:"is_active,omitempty"`
 }
