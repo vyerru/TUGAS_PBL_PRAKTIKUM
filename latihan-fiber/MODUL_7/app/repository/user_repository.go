@@ -197,7 +197,7 @@ func (r *userPostgresRepository) FindAfterCursor(
 
 	args = append(args, q.Limit+1)
 	query := fmt.Sprintf(
-		"SELECT %s FROM users%s ORDER BY created_at ASC, id ASC LIMIT $%d",
+		"SELECT %s FROM users%s ORDER BY created_at DESC, id DESC LIMIT $%d",
 		userColumns, where, len(args))
 
 	rows, err := r.pool.Query(ctx, query, args...)
