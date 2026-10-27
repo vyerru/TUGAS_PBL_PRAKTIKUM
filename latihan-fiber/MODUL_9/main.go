@@ -62,6 +62,9 @@ func main() {
 	txManager := repository.NewTxManager(pool)
 	courseService := service.NewCourseService(courseRepository, txManager)
 
+	supervisorRepository := repository.NewSupervisorRepository(pool)
+	supervisorService := service.NewSupervisorService(supervisorRepository, txManager)
+
 	authService := service.NewAuthService(
 		userRepository, 
 		tokenRepository, 
@@ -70,13 +73,14 @@ func main() {
 	)
 
 	app := config.NewApp(logger, route.Dependencies{
-		Pool:           pool,
-		JWT:            jwtManager,
-		Permissions:    permissions,
-		AuthService:    authService,
-		StudentService: studentService,
-		UserService:    userService,
-		CourseService:  courseService,
+		Pool:              pool,
+		JWT:               jwtManager,
+		Permissions:       permissions,
+		AuthService:       authService,
+		StudentService:    studentService,
+		UserService:       userService,
+		CourseService:     courseService,
+		SupervisorService: supervisorService,
 	})
 
 	port := config.GetEnv("APP_PORT", "3000")

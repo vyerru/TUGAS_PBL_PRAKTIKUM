@@ -18,7 +18,8 @@ type Dependencies struct {
 	AuthService    *service.AuthService
 	StudentService *service.StudentService
 	UserService    *service.UserService
-	CourseService  *service.CourseService
+	CourseService     *service.CourseService
+	SupervisorService *service.SupervisorService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -91,6 +92,26 @@ func Register(app *fiber.App, deps Dependencies) {
 		middleware.RequireJSON,
 		middleware.RequireAuth(deps.JWT))
 	enrollments.Post("/swap", deps.CourseService.Swap)
+
+	// --- pembimbing tugas akhir (Tugas Mandiri D.2) ---
+	supervisors := api.Group("/supervisors",
+		middleware.RequireJSON,
+		middleware.RequireAuth(deps.JWT))
+	supervisors.Get("/", deps.SupervisorService.List)
+	supervisors.Get("/:id", deps.SupervisorService.Get)
+	supervisors.Post("/:id/assign",
+		middleware.RequirePermission(perms, "supervision:manage"),
+		deps.SupervisorService.Assign)
+	supervisors.Patch("/:id",
+		middleware.RequirePermission(perms, "supervision:manage"),
+		deps.SupervisorService.UpdateQuota)
+
+	supervisions := api.Group("/supervisions",
+		middleware.RequireJSON,
+		middleware.RequireAuth(deps.JWT))
+	supervisions.Post("/switch",
+		middleware.RequirePermission(perms, "supervision:manage"),
+		deps.SupervisorService.Switch)
 }
 
 func healthCheck(pool *pgxpool.Pool) fiber.Handler {
