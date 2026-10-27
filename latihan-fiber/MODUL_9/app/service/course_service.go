@@ -178,6 +178,85 @@ func (s *CourseService) Drop(c *fiber.Ctx) error {
 	return helper.NoContent(c)
 }
 
+// ---------- POST /enrollments/swap ----------
+//
+// Pindah kelas adalah contoh terbaik mengapa transaction dibutuhkan:
+// keluar dari kelas lama dan masuk ke kelas baru harus terjadi
+// bersama-sama. Bila kelas baru ternyata penuh, mahasiswa harus TETAP
+// berada di kelas lamanya -- bukan kehilangan keduanya.
+func (s *CourseService) Swap(c *fiber.Ctx) error {
+	ctx, cancel := helper.RequestContext(c)
+	defer cancel()
+
+	current, ok := helper.CurrentUser(c)
+	if !ok {
+		return helper.Unauthorized("belum terautentikasi")
+	}
+
+	var req model.SwapRequest
+	if err := c.BodyParser(&req); err != nil {
+		return helper.BadRequest("body harus berupa JSON yang valid")
+	}
+	if errs := helper.ValidateStruct(req); errs != nil {
+		return helper.Validation(errs)
+	}
+	if req.FromCourseID == req.ToCourseID {
+		return helper.Validation(map[string]string{
+			"to_course_id": "tidak boleh sama dengan from_course_id",
+		})
+	}
+
+	var joined model.Course
+	err := s.tx.WithTx(ctx, func(tx repository.DBTX) error {
+		repo := s.courses.WithTx(tx)
+
+		if err := repo.LockStudent(ctx, current.UserID); err != nil {
+			return err
+		}
+
+		// Kunci KEDUA kelas lebih dulu, dalam urutan id menaik. Tanpa
+		// langkah ini, mahasiswa A yang pindah 1 -> 2 dan mahasiswa B
+		// yang pindah 2 -> 1 pada saat yang sama akan saling menunggu
+		// kunci milik satu sama lain: deadlock.
+		if err := repo.LockCourses(ctx, req.FromCourseID, req.ToCourseID); err != nil {
+			return err
+		}
+
+		from, err := repo.FindByID(ctx, req.FromCourseID)
+		if err != nil {
+			return err
+		}
+		to, err := repo.FindByID(ctx, req.ToCourseID)
+		if err != nil {
+			return err
+		}
+		taken, err := repo.SumCredits(ctx, current.UserID)
+		if err != nil {
+			return err
+		}
+		if CreditsAfterSwap(taken, from.Credits, to.Credits) > MaxCreditsPerSemester {
+			return errCreditLimit
+		}
+
+		if err := repo.DeleteEnrollment(ctx, req.FromCourseID, current.UserID); err != nil {
+			return err
+		}
+		if _, err := repo.DecrementEnrolled(ctx, req.FromCourseID); err != nil {
+			return err
+		}
+		joined, err = repo.IncrementEnrolled(ctx, req.ToCourseID)
+		if err != nil {
+			return err
+		}
+		return repo.InsertEnrollment(ctx, req.ToCourseID, current.UserID)
+	})
+	if err != nil {
+		return translateCourseError(err)
+	}
+
+	return helper.Success(c, fiber.StatusOK, "berhasil pindah kelas", joined)
+}
+
 func translateCourseError(err error) error {
 	switch {
 	case errors.Is(err, repository.ErrNotFound):

@@ -175,9 +175,21 @@ func main() {
 			return enrollMultiple(client, baseURL, tokens[i], ids)
 		})
 	case "swap":
-		// 20 pasang mahasiswa pindah kelas berlawanan arah (IF101 <-> IF102)
+		// 20 pasang mahasiswa pindah kelas berlawanan arah (IF101 <-> IF102).
+		// Setiap mahasiswa harus SUDAH terdaftar di kelas asalnya sebelum
+		// bisa pindah, jadi kita daftarkan dulu satu per satu.
 		from, to := courseIDs["IF101"], courseIDs["IF102"]
-		results = fire(20, func(i int) string {
+		pairs := 20
+		for i := 0; i < pairs*2; i++ {
+			target := from
+			if i%2 == 1 {
+				target = to
+			}
+			if status := enroll(client, baseURL, tokens[i], target); status != "201" {
+				log.Fatalf("setup gagal: mahasiswa %d daftar kelas %d -> %s", i, target, status)
+			}
+		}
+		results = fire(pairs*2, func(i int) string {
 			if i%2 == 0 {
 				return swap(client, baseURL, tokens[i], from, to)
 			}
