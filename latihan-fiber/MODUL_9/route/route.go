@@ -18,6 +18,7 @@ type Dependencies struct {
 	AuthService    *service.AuthService
 	StudentService *service.StudentService
 	UserService    *service.UserService
+	CourseService  *service.CourseService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -69,6 +70,18 @@ users.Delete("/:id",
 users.Get("/:id", deps.UserService.Get)
 users.Put("/:id", deps.UserService.Replace)
 users.Patch("/:id", deps.UserService.Patch)
+
+// --- kelas dan KRS ---
+courses := api.Group("/courses",
+	middleware.RequireJSON,
+	middleware.RequireAuth(deps.JWT))
+
+// "/mine" didaftarkan SEBELUM "/:id". Fiber mencocokkan route sesuai
+// urutan pendaftaran; bila dibalik, "mine" akan dianggap sebagai :id.
+courses.Get("/", deps.CourseService.List)
+courses.Get("/mine", deps.CourseService.Mine)
+courses.Get("/:id", deps.CourseService.Get)
+courses.Post("/:id/enroll", deps.CourseService.Enroll)
 }
 
 func healthCheck(pool *pgxpool.Pool) fiber.Handler {

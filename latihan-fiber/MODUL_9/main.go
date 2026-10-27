@@ -58,6 +58,9 @@ func main() {
 	userService := service.NewUserService(userRepository, permissions)
 	studentService := service.NewStudentService(studentRepository, permissions)
 
+	courseRepository := repository.NewCourseRepository(pool)
+	courseService := service.NewCourseService(courseRepository)
+
 	authService := service.NewAuthService(
 		userRepository, 
 		tokenRepository, 
@@ -71,7 +74,8 @@ func main() {
 		Permissions:    permissions,
 		AuthService:    authService,
 		StudentService: studentService,
-		UserService: userService,
+		UserService:    userService,
+		CourseService:  courseService,
 	})
 
 	port := config.GetEnv("APP_PORT", "3000")
