@@ -54,40 +54,43 @@ func Register(app *fiber.App, deps Dependencies) {
 	students.Patch("/:id", deps.StudentService.Patch)
 
 	users := api.Group("/users",
-	middleware.RequireJSON,
-	middleware.RequireAuth(deps.JWT))
+		middleware.RequireJSON,
+		middleware.RequireAuth(deps.JWT))
 
-users.Get("/",
-	middleware.RequirePermission(perms, "user:list"),
-	deps.UserService.List)
-users.Post("/",
-	middleware.RequirePermission(perms, "user:create"),
-	deps.UserService.Create)
-users.Delete("/:id",
-	middleware.RequirePermission(perms, "user:delete"),
-	deps.UserService.Delete)
+	users.Get("/",
+		middleware.RequirePermission(perms, "user:list"),
+		deps.UserService.List)
+	users.Post("/",
+		middleware.RequirePermission(perms, "user:create"),
+		deps.UserService.Create)
+	users.Delete("/:id",
+		middleware.RequirePermission(perms, "user:delete"),
+		deps.UserService.Delete)
 
-users.Get("/:id", deps.UserService.Get)
-users.Put("/:id", deps.UserService.Replace)
-users.Patch("/:id", deps.UserService.Patch)
+	users.Get("/:id", deps.UserService.Get)
+	users.Put("/:id", deps.UserService.Replace)
+	users.Patch("/:id", deps.UserService.Patch)
 
-// --- kelas dan KRS ---
-courses := api.Group("/courses",
-	middleware.RequireJSON,
-	middleware.RequireAuth(deps.JWT))
+	// --- kelas dan KRS ---
+	courses := api.Group("/courses",
+		middleware.RequireJSON,
+		middleware.RequireAuth(deps.JWT))
 
-// "/mine" didaftarkan SEBELUM "/:id". Fiber mencocokkan route sesuai
-// urutan pendaftaran; bila dibalik, "mine" akan dianggap sebagai :id.
-courses.Get("/", deps.CourseService.List)
-courses.Get("/mine", deps.CourseService.Mine)
-courses.Get("/:id", deps.CourseService.Get)
-courses.Post("/:id/enroll", deps.CourseService.Enroll)
-courses.Delete("/:id/enroll", deps.CourseService.Drop)
+	// "/mine" didaftarkan SEBELUM "/:id". Fiber mencocokkan route sesuai
+	// urutan pendaftaran; bila dibalik, "mine" akan dianggap sebagai :id.
+	courses.Get("/", deps.CourseService.List)
+	courses.Get("/mine", deps.CourseService.Mine)
+	courses.Get("/:id", deps.CourseService.Get)
+	courses.Post("/:id/enroll", deps.CourseService.Enroll)
+	courses.Delete("/:id/enroll", deps.CourseService.Drop)
+	courses.Patch("/:id",
+		middleware.RequirePermission(perms, "course:manage"),
+		deps.CourseService.UpdateQuota)
 
-enrollments := api.Group("/enrollments",
-	middleware.RequireJSON,
-	middleware.RequireAuth(deps.JWT))
-enrollments.Post("/swap", deps.CourseService.Swap)
+	enrollments := api.Group("/enrollments",
+		middleware.RequireJSON,
+		middleware.RequireAuth(deps.JWT))
+	enrollments.Post("/swap", deps.CourseService.Swap)
 }
 
 func healthCheck(pool *pgxpool.Pool) fiber.Handler {
