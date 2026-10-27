@@ -12,10 +12,11 @@ import (
 
 type CourseService struct {
 	courses repository.CourseRepository
+	tx      *repository.TxManager
 }
 
-func NewCourseService(courses repository.CourseRepository) *CourseService {
-	return &CourseService{courses: courses}
+func NewCourseService(courses repository.CourseRepository, tx *repository.TxManager) *CourseService {
+	return &CourseService{courses: courses, tx: tx}
 }
 
 // ---------- GET /courses ----------

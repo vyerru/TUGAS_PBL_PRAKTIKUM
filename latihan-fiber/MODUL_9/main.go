@@ -59,7 +59,8 @@ func main() {
 	studentService := service.NewStudentService(studentRepository, permissions)
 
 	courseRepository := repository.NewCourseRepository(pool)
-	courseService := service.NewCourseService(courseRepository)
+	txManager := repository.NewTxManager(pool)
+	courseService := service.NewCourseService(courseRepository, txManager)
 
 	authService := service.NewAuthService(
 		userRepository, 
