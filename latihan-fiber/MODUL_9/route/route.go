@@ -82,6 +82,7 @@ courses.Get("/", deps.CourseService.List)
 courses.Get("/mine", deps.CourseService.Mine)
 courses.Get("/:id", deps.CourseService.Get)
 courses.Post("/:id/enroll", deps.CourseService.Enroll)
+courses.Delete("/:id/enroll", deps.CourseService.Drop)
 }
 
 func healthCheck(pool *pgxpool.Pool) fiber.Handler {
