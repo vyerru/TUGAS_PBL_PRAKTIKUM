@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"MODUL_7/app/model" 
+	"MODUL_9/app/model" 
 )
 
 type StudentRepository interface {

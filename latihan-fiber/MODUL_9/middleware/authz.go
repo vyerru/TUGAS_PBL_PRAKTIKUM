@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"MODUL_7/helper"
+	"MODUL_9/helper"
 )
 
 func RequirePermission(perms *helper.PermissionSet, permission string) fiber.Handler {

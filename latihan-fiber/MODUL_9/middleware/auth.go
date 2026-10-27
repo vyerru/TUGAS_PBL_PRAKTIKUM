@@ -7,7 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"MODUL_7/helper"
+	"MODUL_9/helper"
 )
 
 func RequireAuth(jwtManager *helper.JWTManager) fiber.Handler {

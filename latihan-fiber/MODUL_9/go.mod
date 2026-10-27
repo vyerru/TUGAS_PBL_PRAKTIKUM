@@ -1,4 +1,4 @@
-module MODUL_7
+module MODUL_9
 
 go 1.26.0
 

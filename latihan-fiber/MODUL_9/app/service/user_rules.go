@@ -1,7 +1,7 @@
 package service
 
 import (
-	"MODUL_7/app/model"
+	"MODUL_9/app/model"
 	"strings"
 )
 

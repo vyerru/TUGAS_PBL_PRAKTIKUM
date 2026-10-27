@@ -4,10 +4,10 @@ import (
 	"errors"
 	"log/slog"
 
-	"MODUL_7/app/model"
-	"MODUL_7/helper"
-	"MODUL_7/middleware"
-	"MODUL_7/route"
+	"MODUL_9/app/model"
+	"MODUL_9/helper"
+	"MODUL_9/middleware"
+	"MODUL_9/route"
 
 	"github.com/gofiber/fiber/v2"
 )

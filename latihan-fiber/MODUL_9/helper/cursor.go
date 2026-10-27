@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"MODUL_7/app/model"
+	"MODUL_9/app/model"
 )
 
 var ErrInvalidCursor = errors.New("cursor tidak valid") // [GLUE]

@@ -12,7 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 
-	"MODUL_7/helper"
+	"MODUL_9/helper"
 )
 
 func Register(app *fiber.App, logger *slog.Logger, allowedOrigins string) {

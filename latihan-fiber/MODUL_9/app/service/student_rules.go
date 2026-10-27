@@ -3,7 +3,7 @@ package service
 import (
 	"strings"
 
-	"MODUL_7/app/model"
+	"MODUL_9/app/model"
 )
 
 // ApplyPatchStudent menggabungkan field patch yang tidak bernilai nil

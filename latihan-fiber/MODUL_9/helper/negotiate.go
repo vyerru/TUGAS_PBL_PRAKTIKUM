@@ -7,7 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"MODUL_7/app/model"
+	"MODUL_9/app/model"
 )
 
 const (

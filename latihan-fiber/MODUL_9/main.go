@@ -8,12 +8,12 @@ import (
 	"syscall"
 	"time"
 
-	"MODUL_7/app/repository"
-	"MODUL_7/app/service"
-	"MODUL_7/config"
-	"MODUL_7/database"
-	"MODUL_7/helper"
-	"MODUL_7/route"
+	"MODUL_9/app/repository"
+	"MODUL_9/app/service"
+	"MODUL_9/config"
+	"MODUL_9/database"
+	"MODUL_9/helper"
+	"MODUL_9/route"
 )
 
 const minSecretLength = 32

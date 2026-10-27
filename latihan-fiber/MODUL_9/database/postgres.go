@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"MODUL_7/config"
+	"MODUL_9/config"
 )
 
 // NewPool membuat connection pool ke PostgreSQL.

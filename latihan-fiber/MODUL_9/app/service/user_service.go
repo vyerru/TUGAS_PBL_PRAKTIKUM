@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
-	"MODUL_7/app/model"
-	"MODUL_7/app/repository"
-	"MODUL_7/helper"
+	"MODUL_9/app/model"
+	"MODUL_9/app/repository"
+	"MODUL_9/helper"
 	"github.com/gofiber/fiber/v2"
 )
 
