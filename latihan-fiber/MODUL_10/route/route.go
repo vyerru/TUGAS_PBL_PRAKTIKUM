@@ -61,6 +61,7 @@ func Register(app *fiber.App, deps Dependencies) {
 	// --- portofolio mahasiswa (MongoDB) ---
 	students.Get("/:id/portfolio", deps.PortfolioService.Get)
 	students.Put("/:id/portfolio", deps.PortfolioService.Put)
+	students.Post("/:id/portfolio/projects", deps.PortfolioService.AddProject)
 
 	users := api.Group("/users",
 		middleware.RequireJSON,

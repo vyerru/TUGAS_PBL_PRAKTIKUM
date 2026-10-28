@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -117,6 +118,38 @@ func (s *PortfolioService) Put(c *fiber.Ctx) error {
 		return translatePortfolioError(err, "portofolio")
 	}
 	return helper.Success(c, fiber.StatusOK, "portofolio berhasil disimpan", p)
+}
+
+// ---------- POST /students/:id/portfolio/projects ----------
+
+func (s *PortfolioService) AddProject(c *fiber.Ctx) error {
+	ctx, cancel := helper.RequestContext(c)
+	defer cancel()
+
+	if _, err := s.studentOwned(ctx, c, "student:update:any"); err != nil {
+		return err
+	}
+	studentID, _ := helper.ParamID(c)
+
+	var req model.ProjectRequest
+	if err := c.BodyParser(&req); err != nil {
+		return helper.BadRequest("body harus berupa JSON yang valid")
+	}
+	req.Title = strings.TrimSpace(req.Title)
+	req.Link = strings.TrimSpace(req.Link)
+	req.Technologies = NormalizeTechnologies(req.Technologies)
+	if errs := helper.ValidateStruct(req); errs != nil {
+		return helper.Validation(errs)
+	}
+
+	p, err := s.portfolios.AddProject(ctx, studentID, model.Project{
+		Title: req.Title, Technologies: req.Technologies, Link: req.Link, Year: req.Year,
+	})
+	if err != nil {
+		return translatePortfolioError(err, "portofolio")
+	}
+	return helper.Created(c, "proyek berhasil ditambahkan", p,
+		"/api/v1/students/"+strconv.Itoa(studentID)+"/portfolio")
 }
 
 func translatePortfolioError(err error, entity string) error {

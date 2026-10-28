@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -24,6 +25,7 @@ type PortfolioRepository interface {
 	EnsureIndexes(ctx context.Context) error
 	FindByStudent(ctx context.Context, studentID int) (model.Portfolio, error)
 	Replace(ctx context.Context, studentID int, p model.Portfolio) (model.Portfolio, error)
+	AddProject(ctx context.Context, studentID int, p model.Project) (model.Portfolio, error)
 }
 
 // portfolioDocument adalah bentuk portofolio SEBAGAIMANA TERSIMPAN di MongoDB.
@@ -195,4 +197,47 @@ func (r *portfolioMongoRepository) Replace(ctx context.Context, studentID int, p
 		return model.Portfolio{}, fmt.Errorf("menyimpan portofolio: %w", err)
 	}
 	return model.Portfolio{}, fmt.Errorf("menyimpan portofolio: terlalu banyak percobaan bersamaan")
+}
+
+// AddProject menambahkan satu proyek ke array projects.
+//
+// Syarat "projects.19 tidak ada" berarti array belum berisi 20 elemen
+// (indeks 0 sampai 19). Pemeriksaan batas dan penambahan terjadi dalam satu
+// operasi atomik, sehingga dua request serentak tidak dapat sama-sama lolos
+// ketika tinggal satu tempat tersisa — pola yang sama dengan AddReply.
+func (r *portfolioMongoRepository) AddProject(ctx context.Context, studentID int, p model.Project) (model.Portfolio, error) {
+	limitField := "projects." + strconv.Itoa(MaxProjectsPerPortfolio-1)
+
+	doc := projectDocument{
+		ID: bson.NewObjectID(), Title: p.Title,
+		Technologies: p.Technologies, Link: p.Link, Year: p.Year,
+	}
+	if doc.Technologies == nil {
+		doc.Technologies = []string{}
+	}
+
+	var updated portfolioDocument
+	err := r.coll.FindOneAndUpdate(ctx,
+		bson.M{"student_id": studentID, limitField: bson.M{"$exists": false}},
+		bson.M{
+			"$push":  bson.M{"projects": doc},
+			"$set":   bson.M{"updated_at": now()},
+		},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&updated)
+	if err == nil {
+		return updated.toModel(), nil
+	}
+	if !errors.Is(err, mongo.ErrNoDocuments) {
+		return model.Portfolio{}, fmt.Errorf("menambah proyek: %w", err)
+	}
+
+	count, err := r.coll.CountDocuments(ctx, bson.M{"student_id": studentID})
+	if err != nil {
+		return model.Portfolio{}, fmt.Errorf("memeriksa portofolio: %w", err)
+	}
+	if count == 0 {
+		return model.Portfolio{}, ErrNotFound
+	}
+	return model.Portfolio{}, ErrProjectLimit
 }
