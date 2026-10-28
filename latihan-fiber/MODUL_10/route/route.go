@@ -22,6 +22,7 @@ type Dependencies struct {
 	UserService    *service.UserService
 	CourseService     *service.CourseService
 	SupervisorService *service.SupervisorService
+	ReviewService     *service.ReviewService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -90,6 +91,11 @@ func Register(app *fiber.App, deps Dependencies) {
 		middleware.RequirePermission(perms, "course:manage"),
 		deps.CourseService.UpdateQuota)
 
+	// --- ulasan satu kelas (MongoDB) ---
+	courses.Get("/:id/reviews", deps.ReviewService.ListByCourse)
+	courses.Get("/:id/reviews/summary", deps.ReviewService.Summary)
+	courses.Post("/:id/reviews", deps.ReviewService.Create)
+
 	enrollments := api.Group("/enrollments",
 		middleware.RequireJSON,
 		middleware.RequireAuth(deps.JWT))
@@ -114,6 +120,16 @@ func Register(app *fiber.App, deps Dependencies) {
 	supervisions.Post("/switch",
 		middleware.RequirePermission(perms, "supervision:manage"),
 		deps.SupervisorService.Switch)
+
+	// --- ulasan kelas (MongoDB) ---
+	reviews := api.Group("/reviews",
+		middleware.RequireJSON,
+		middleware.RequireAuth(deps.JWT))
+	reviews.Get("/:id", deps.ReviewService.Get)
+	reviews.Patch("/:id", deps.ReviewService.Update)
+	reviews.Delete("/:id", deps.ReviewService.Delete)
+	reviews.Post("/:id/replies", deps.ReviewService.Reply)
+	reviews.Post("/:id/helpful", deps.ReviewService.MarkHelpful)
 }
 
 // healthCheck kini memeriksa DUA database. Aplikasi dianggap sehat hanya

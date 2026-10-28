@@ -49,6 +49,7 @@ func main() {
 		defer cancel()
 		_ = mongoClient.Disconnect(ctx)
 	}()
+	mongoDB := mongoClient.Database(config.GetEnv("MONGO_DATABASE", "praktikum_backend"))
 
 	jwtManager := helper.NewJWTManager(
 		jwtSecret,
@@ -79,6 +80,15 @@ func main() {
 	supervisorRepository := repository.NewSupervisorRepository(pool)
 	supervisorService := service.NewSupervisorService(supervisorRepository, txManager)
 
+	reviewRepository := repository.NewReviewRepository(mongoDB)
+
+	if err := reviewRepository.EnsureIndexes(context.Background()); err != nil {
+		logger.Error("gagal membuat index MongoDB", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	reviewService := service.NewReviewService(reviewRepository, courseRepository, permissions)
+
 	authService := service.NewAuthService(
 		userRepository, 
 		tokenRepository, 
@@ -96,6 +106,7 @@ func main() {
 		UserService:       userService,
 		CourseService:     courseService,
 		SupervisorService: supervisorService,
+		ReviewService:     reviewService,
 	})
 
 	port := config.GetEnv("APP_PORT", "3000")
