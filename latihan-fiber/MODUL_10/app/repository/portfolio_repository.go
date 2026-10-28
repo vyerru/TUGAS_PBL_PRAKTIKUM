@@ -27,6 +27,7 @@ type PortfolioRepository interface {
 	Replace(ctx context.Context, studentID int, p model.Portfolio) (model.Portfolio, error)
 	AddProject(ctx context.Context, studentID int, p model.Project) (model.Portfolio, error)
 	DeleteProject(ctx context.Context, studentID int, projectID string) (model.Portfolio, error)
+	TechnologyStats(ctx context.Context) ([]model.TechnologyStat, error)
 }
 
 // portfolioDocument adalah bentuk portofolio SEBAGAIMANA TERSIMPAN di MongoDB.
@@ -279,4 +280,47 @@ func (r *portfolioMongoRepository) DeleteProject(ctx context.Context, studentID 
 		return model.Portfolio{}, ErrNotFound
 	}
 	return model.Portfolio{}, ErrProjectNotFound
+}
+
+// TechnologyStats meringkas seluruh portofolio menjadi 10 teknologi yang
+// paling banyak dipakai.
+//
+// Pipeline membutuhkan DUA KALI $unwind: $unwind pertama memecah array
+// projects sehingga satu portofolio berisi 3 proyek menjadi 3 dokumen;
+// $unwind kedua memecah array technologies milik tiap proyek. Setelah itu
+// $group dapat menghitung setiap pasangan (proyek, teknologi) secara terpisah.
+func (r *portfolioMongoRepository) TechnologyStats(ctx context.Context) ([]model.TechnologyStat, error) {
+	pipeline := mongo.Pipeline{
+		{{Key: "$unwind", Value: "$projects"}},
+		{{Key: "$unwind", Value: "$projects.technologies"}},
+		{{Key: "$group", Value: bson.M{
+			"_id":   "$projects.technologies",
+			"total": bson.M{"$sum": 1},
+		}}},
+		{{Key: "$sort", Value: bson.D{
+			{Key: "total", Value: -1},
+			{Key: "_id", Value: 1},
+		}}},
+		{{Key: "$limit", Value: 10}},
+	}
+
+	cursor, err := r.coll.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("meringkas teknologi: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var rows []struct {
+		Technology string `bson:"_id"`
+		Total      int    `bson:"total"`
+	}
+	if err := cursor.All(ctx, &rows); err != nil {
+		return nil, fmt.Errorf("membaca ringkasan teknologi: %w", err)
+	}
+
+	stats := make([]model.TechnologyStat, 0, len(rows))
+	for _, row := range rows {
+		stats = append(stats, model.TechnologyStat{Technology: row.Technology, Total: row.Total})
+	}
+	return stats, nil
 }

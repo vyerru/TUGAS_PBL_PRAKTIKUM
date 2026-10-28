@@ -170,6 +170,21 @@ func (s *PortfolioService) DeleteProject(c *fiber.Ctx) error {
 	return helper.Success(c, fiber.StatusOK, "proyek berhasil dihapus", p)
 }
 
+// ---------- GET /portfolios/stats/technologies ----------
+
+func (s *PortfolioService) TechnologyStats(c *fiber.Ctx) error {
+	ctx, cancel := helper.RequestContext(c)
+	defer cancel()
+
+	stats, err := s.portfolios.TechnologyStats(ctx)
+	if err != nil {
+		return helper.Internal(err)
+	}
+	return helper.SuccessList(c, "statistik teknologi berhasil diambil", stats, &model.Meta{
+		Total: len(stats),
+	})
+}
+
 func translatePortfolioError(err error, entity string) error {
 	switch {
 	case errors.Is(err, repository.ErrInvalidID):
