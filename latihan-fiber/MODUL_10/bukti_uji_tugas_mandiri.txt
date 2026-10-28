@@ -1,0 +1,94 @@
+
+### SETUP | revadmin membuat 2 mahasiswa (pemilik awal: revadmin)
+70
+71
+
+### SETUP | alihkan kepemilikan: S1 -> rev001, S2 -> rev002 (via SQL, lalu tampilkan)
+UPDATE 1
+UPDATE 1
+70 434241101 owner=68
+71 434241102 owner=69
+S1=70 S2=71
+
+### C1 | rev001 GET portofolio mahasiswa 70 -> harap 404 'portofolio tidak ditemukan' (belum dibuat)
+{"success":false,"code":"NOT_FOUND","message":"portofolio tidak ditemukan","request_id":"03048ed9-5722-4162-80a6-aaa21bedb9ce"}
+[status 404]
+
+### C2 | GET portofolio mahasiswa 99999 -> harap 404 'mahasiswa tidak ditemukan'
+{"success":false,"code":"NOT_FOUND","message":"mahasiswa tidak ditemukan","request_id":"04048ed9-5722-4162-80a6-aaa21bedb9ce"}
+[status 404]
+
+### C3 | rev002 PUT portofolio milik rev001 -> harap 403
+{"success":false,"code":"FORBIDDEN","message":"tidak berhak mengakses portofolio mahasiswa milik orang lain","request_id":"05048ed9-5722-4162-80a6-aaa21bedb9ce"}
+[status 403]
+
+### C4 | rev003 (user biasa, bukan pemilik) GET portofolio 70 -> harap 403
+{"success":false,"code":"FORBIDDEN","message":"tidak berhak mengakses portofolio mahasiswa milik orang lain","request_id":"06048ed9-5722-4162-80a6-aaa21bedb9ce"}
+[status 403]
+
+### C5 | rev001 PUT portofolio lengkap (2 proyek + 1 sertifikat, teknologi kacau) -> harap 200, ternormalisasi
+{'proyek': [('API Perpustakaan', ['go', 'postgresql', 'docker']), ('Dashboard Statistik', ['react', 'typescript'])], 'headline': 'Backend & Data Enthusiast'}
+
+### C6 | rev001 GET ulang -> harap 200 (created_at == updated_at dari PUT)
+{'created_at': '2026-10-28T08:56:35.775Z', 'updated_at': '2026-10-28T08:56:35.775Z', 'jumlah_proyek': 2}
+
+### C7 | PUT ulang (ganti headline) -> harap 200, created_at TETAP
+{'created_at': '2026-10-28T08:56:35.775Z', 'updated_at': '2026-10-28T08:56:35.868Z', 'headline': 'Backend & Data Enthusiast v2'}
+
+### C8 | POST proyek baru (technologies kacau) -> harap 201, total proyek 3, teknologi ternormalisasi
+{'jumlah_proyek': 3, 'terakhir': {'id': '6ae1b8c398574287607c9b08', 'title': 'Sinkronisasi Cache', 'technologies': ['go', 'redis'], 'link': '', 'year': 2026}}
+
+### C9 | NoSQL injection di body PUT: {"headline": {"$ne": ""}} -> harap 400
+{"success":false,"code":"BAD_REQUEST","message":"body harus berupa JSON yang valid","request_id":"0b048ed9-5722-4162-80a6-aaa21bedb9ce"}
+[status 400]
+
+### C10 | DELETE proyek dengan id tidak valid -> harap 400 'id proyek tidak valid'
+{"success":false,"code":"BAD_REQUEST","message":"id proyek tidak valid","request_id":"0c048ed9-5722-4162-80a6-aaa21bedb9ce"}
+[status 400]
+
+### C11 | DELETE proyek ke-2 (6ae1b8c398574287607c9b07) -> harap 200, sisa 2 proyek
+2
+
+### C12 | DELETE proyek yang sama lagi -> harap 404 'proyek tidak ditemukan'
+{"success":false,"code":"NOT_FOUND","message":"proyek tidak ditemukan di dalam portofolio","request_id":"0f048ed9-5722-4162-80a6-aaa21bedb9ce"}
+[status 404]
+
+### C13 | rev002 membuat portofolio S2 (3 proyek) untuk data statistik
+[status 200]
+
+### C14 | GET /portfolios/stats/technologies -> 10 teknologi terpopuler
+[{'technology': 'docker', 'total': 3}, {'technology': 'go', 'total': 3}, {'technology': 'postgresql', 'total': 2}, {'technology': 'python', 'total': 2}, {'technology': 'django', 'total': 1}, {'technology': 'redis', 'total': 1}]
+
+=== RACE: isi S1 sampai 18 proyek (satu request = satu POST) ===
+201 201 201 201 201 201 201 201 201 201 201 201 201 201 201 201 
+jumlah proyek sekarang (harap 18):
+18
+
+### C15 | 10 POST proyek serentak saat sisa 2 -> harap TEPAT 2x201, 8x409
+201 201 409 409 409 409 409 409 409 409
+jumlah proyek akhir (harap 20):
+20
+
+### C16 | POST ke-21 -> harap 409 PROJECT_LIMIT
+{"success":false,"code":"PROJECT_LIMIT","message":"jumlah proyek sudah mencapai batas","request_id":"2e048ed9-5722-4162-80a6-aaa21bedb9ce"}
+[status 409]
+
+### C17 | stats akhir (termasuk 18 proyek python/flask)
+[{'technology': 'python', 'total': 20}, {'technology': 'flask', 'total': 18}, {'technology': 'docker', 'total': 3}, {'technology': 'go', 'total': 3}, {'technology': 'postgresql', 'total': 2}, {'technology': 'django', 'total': 1}, {'technology': 'redis', 'total': 1}]
+
+=== selesai ===
+
+=== BUKTI RACE & VERIFIKASI DATABASE (T12/T13-e) ===
+isi 16 proyek beruntun: 16x201 -> total 18
+10 POST serentak: 201 201 409 409 409 409 409 409 409 409 (tepat 2 yang berhasil)
+jumlah proyek akhir: 20 (batas MaxProjectsPerPortfolio terjaga di level database)
+POST ke-21: 409 PROJECT_LIMIT
+
+=== BUKTI INDEX (mongosh, MongoDB 8.0.30) ===
+db.student_portfolios.find({student_id: 70}).explain("executionStats")
+  index terpakai  : student_portfolio_unique (EXPRESS_IXSCAN)
+  totalDocsExamined : 1
+  nReturned : 1
+  exec time (ms) : 0
+aggregation $unwind ganda: COLLSCAN — sesuai desain, stats membaca SELURUH collection
+  (tanpa $match, index selective apa pun tidak akan dipakai; komentar EnsureIndexes)
