@@ -23,6 +23,7 @@ type Dependencies struct {
 	CourseService     *service.CourseService
 	SupervisorService *service.SupervisorService
 	ReviewService     *service.ReviewService
+	PortfolioService  *service.PortfolioService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -56,6 +57,10 @@ func Register(app *fiber.App, deps Dependencies) {
 	students.Get("/:id", deps.StudentService.Get)
 	students.Put("/:id", deps.StudentService.Replace)
 	students.Patch("/:id", deps.StudentService.Patch)
+
+	// --- portofolio mahasiswa (MongoDB) ---
+	students.Get("/:id/portfolio", deps.PortfolioService.Get)
+	students.Put("/:id/portfolio", deps.PortfolioService.Put)
 
 	users := api.Group("/users",
 		middleware.RequireJSON,
