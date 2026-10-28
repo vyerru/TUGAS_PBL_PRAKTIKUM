@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -164,15 +166,18 @@ func main() {
 			return enroll(client, baseURL, tokens[i], target)
 		})
 	case "credits":
-		// 10 mahasiswa, masing-masing mendaftar ke 12 kelas sekaligus (36 SKS > 24)
+		// 10 mahasiswa, masing-masing mendaftar ke 12 kelas 3 SKS sekaligus
+		// (36 SKS > batas 24). Setiap request dikirim sebagai pekerjaan
+		// tersendiri agar tallinya sesuai C.2: 120 request total.
 		wanted := []string{"IF101", "IF102", "IF301", "IF302", "IF303", "IF304",
 			"IF305", "IF306", "IF307", "IF308", "IF309", "IF310"}
 		ids := make([]int, 0, len(wanted))
 		for _, code := range wanted {
 			ids = append(ids, courseIDs[code])
 		}
-		results = fire(10, func(i int) string {
-			return enrollMultiple(client, baseURL, tokens[i], ids)
+		students := 10
+		results = fire(students*len(ids), func(i int) string {
+			return enroll(client, baseURL, tokens[i/len(ids)], ids[i%len(ids)])
 		})
 	case "swap":
 		// 20 pasang mahasiswa pindah kelas berlawanan arah (IF101 <-> IF102).
@@ -221,6 +226,20 @@ func courseIDMap(ctx context.Context, conn *pgx.Conn) map[string]int {
 	return result
 }
 
+// label mengubah response menjadi label "STATUS" atau "STATUS CODE" bila
+// body memuat field "code", misalnya "409 COURSE_FULL".
+func label(resp *http.Response) string {
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	var parsed struct {
+		Code string `json:"code"`
+	}
+	_ = json.Unmarshal(body, &parsed)
+	if parsed.Code != "" && resp.StatusCode >= 400 {
+		return fmt.Sprintf("%d %s", resp.StatusCode, parsed.Code)
+	}
+	return fmt.Sprintf("%d", resp.StatusCode)
+}
+
 func enroll(client *http.Client, baseURL, token string, courseID int) string {
 	req, _ := http.NewRequest("POST", fmt.Sprintf("%s/courses/%d/enroll", baseURL, courseID),
 		bytes.NewReader([]byte("{}")))
@@ -231,26 +250,7 @@ func enroll(client *http.Client, baseURL, token string, courseID int) string {
 		return "ERR"
 	}
 	defer resp.Body.Close()
-	return fmt.Sprintf("%d", resp.StatusCode)
-}
-
-func enrollMultiple(client *http.Client, baseURL, token string, courseIDs []int) string {
-	success := 0
-	for _, id := range courseIDs {
-		req, _ := http.NewRequest("POST", fmt.Sprintf("%s/courses/%d/enroll", baseURL, id),
-			bytes.NewReader([]byte("{}")))
-		req.Header.Set("Authorization", "Bearer "+token)
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := client.Do(req)
-		if err != nil {
-			continue
-		}
-		resp.Body.Close()
-		if resp.StatusCode == 201 {
-			success++
-		}
-	}
-	return fmt.Sprintf("OK:%d", success)
+	return label(resp)
 }
 
 func swap(client *http.Client, baseURL, token string, fromID, toID int) string {
@@ -264,17 +264,22 @@ func swap(client *http.Client, baseURL, token string, fromID, toID int) string {
 		return "ERR"
 	}
 	defer resp.Body.Close()
-	return fmt.Sprintf("%d", resp.StatusCode)
+	return label(resp)
 }
 
 func printResults(mode string, results map[string]int, elapsed time.Duration) {
-	fmt.Printf("\n=== %s ===\n", mode)
-	fmt.Printf("Waktu total: %v\n", elapsed)
-	fmt.Println("Hasil request:")
-	total := 0
-	for code, count := range results {
-		fmt.Printf("  %s: %d\n", code, count)
-		total += count
+	keys := make([]string, 0, len(results))
+	for k := range results {
+		keys = append(keys, k)
 	}
-	fmt.Printf("Total: %d\n", total)
+	sort.Strings(keys)
+
+	fmt.Printf("\n=== %s ===\n", mode)
+	total := 0
+	for _, k := range keys {
+		fmt.Printf("  %-30s %d\n", k, results[k])
+		total += results[k]
+	}
+	fmt.Printf("  %-30s %d\n", "TOTAL", total)
+	fmt.Printf("waktu total : %v\n", elapsed)
 }
