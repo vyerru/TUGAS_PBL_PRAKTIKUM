@@ -1,0 +1,112 @@
+
+### T1 | rev003 (tidak terdaftar) menulis ulasan IF101 -> harap 403 NOT_ENROLLED
+{"success":false,"code":"NOT_ENROLLED","message":"hanya peserta kelas yang boleh menulis ulasan","request_id":"dd3dc4f3-4457-4380-af21-241eb867e60c"}
+[status 403]
+
+### T2 | rev001 menulis ulasan dengan tag kacau -> harap 201, tags ternormalisasi, header Location
+{'id': '6ae1abb5cb0de926f0bcf7cd', 'tags': ['tugas-banyak', 'dosen-jelas']}
+Location: /api/v1/reviews/6ae1abb5cb0de926f0bcf7cd
+REVIEW1=6ae1abb5cb0de926f0bcf7cd
+
+### T3 | rev001 menulis ulasan kedua di kelas sama -> harap 409 ALREADY_REVIEWED
+{"success":false,"code":"ALREADY_REVIEWED","message":"Anda sudah menulis ulasan untuk kelas ini, ubah ulasan yang ada","request_id":"df3dc4f3-4457-4380-af21-241eb867e60c"}
+[status 409]
+
+### T4 | rev002 rating 9, komentar 'pendek', 6 tag -> harap 422 (rating, comment, tags item)
+{"success":false,"code":"VALIDATION_ERROR","message":"validasi gagal","fields":{"comment":"minimal 10 karakter","rating":"nilai maksimal 5","tags":"maksimal 5 item"},"request_id":"e03dc4f3-4457-4380-af21-241eb867e60c"}
+[status 422]
+
+### T5 | rev002 menulis ulasan valid -> harap 201 (dipakai uji helpful/delete)
+REVIEW2=6ae1abb5cb0de926f0bcf7cf
+
+### T6 | ulasan untuk kelas 99999 -> harap 404
+{"success":false,"code":"NOT_FOUND","message":"data tidak ditemukan","request_id":"e23dc4f3-4457-4380-af21-241eb867e60c"}
+[status 404]
+
+### T7 | GET /reviews/bukan-objectid -> harap 400 'id ulasan tidak valid'
+{"success":false,"code":"BAD_REQUEST","message":"id ulasan tidak valid","request_id":"e33dc4f3-4457-4380-af21-241eb867e60c"}
+[status 400]
+
+### T8 | rev002 mengubah ulasan rev001 -> harap 403
+{"success":false,"code":"FORBIDDEN","message":"hanya pemilik ulasan yang boleh melakukan ini","request_id":"e43dc4f3-4457-4380-af21-241eb867e60c"}
+[status 403]
+
+### T9 | rev001 mengubah ulasannya sendiri -> harap 200 (created_at tetap, updated_at berubah)
+{'created_at': '2026-10-28T08:00:53.273Z', 'updated_at': '2026-10-28T08:00:53.453Z', 'rating': 5}
+
+### T10 | rev001 menilai ulasannya sendiri 'membantu' -> harap 409 OWN_REVIEW
+{"success":false,"code":"OWN_REVIEW","message":"tidak dapat menilai ulasan sendiri","request_id":"e63dc4f3-4457-4380-af21-241eb867e60c"}
+[status 409]
+
+### T11a | rev002 menilai ulasan rev001 -> harap 200, helpful_count=1
+1
+
+### T11b | rev002 mengulang -> harap 409 ALREADY_VOTED
+{"success":false,"code":"ALREADY_VOTED","message":"Anda sudah menilai ulasan ini","request_id":"e83dc4f3-4457-4380-af21-241eb867e60c"}
+[status 409]
+
+### T12 | 30 mahasiswa berbeda serentak menilai REVIEW2 -> harap 30x200, helpful_count=30
+Traceback (most recent call last):
+  File "/tmp/opencode/concurrent_test.py", line 18, in <module>
+    tokens = [(base / f"token_mhs{i:03d}").read_text().strip() for i in range(1, n + 1)]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/pathlib.py", line 1029, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/pathlib.py", line 1015, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/opencode/token_mhs001'
+0
+
+### T13 | 1 mahasiswa (rev003) menilai 20 kali serentak -> harap 1x200, 19x409
+200 409 409 409 409 409 409 409 409 409 409 409 409 409 409 409 409 409 409 409
+1
+
+### T14 | rev003 menghapus ulasan rev002 -> harap 403
+{"success":false,"code":"FORBIDDEN","message":"hanya pemilik ulasan yang boleh melakukan ini","request_id":"ff3dc4f3-4457-4380-af21-241eb867e60c"}
+[status 403]
+
+### T15 | admin menghapus ulasan rev002 -> harap 204
+[status 204]
+
+### T16 | menghapus ulasan yang sudah terhapus -> harap 404
+{"success":false,"code":"NOT_FOUND","message":"data tidak ditemukan","request_id":"013ec4f3-4457-4380-af21-241eb867e60c"}
+[status 404]
+
+### T17 | rev002 membalas ulasan rev001 -> harap 201, jumlah balasan 1
+1
+
+### T18a | mengisi balasan sampai 48 (harap 48)
+48
+
+### T18b | 10 balasan rev003 serentak saat sisa 2 -> harap 2x201, 8x409 REPLY_LIMIT
+201 201 409 409 409 409 409 409 409 409
+total balasan akhir:
+50
+
+### T18c | balasan ke-51 -> harap 409 REPLY_LIMIT
+{"success":false,"code":"REPLY_LIMIT","message":"jumlah balasan sudah mencapai batas","request_id":"3e3ec4f3-4457-4380-af21-241eb867e60c"}
+[status 409]
+
+### T19 | NoSQL injection di body: {"comment": {"$ne": ""}} -> harap 400
+{"success":false,"code":"BAD_REQUEST","message":"body harus berupa JSON yang valid","request_id":"3f3ec4f3-4457-4380-af21-241eb867e60c"}
+[status 400]
+
+### T20 | NoSQL injection di query: ?tag={"$ne":""} -> harap 200 dengan 0 hasil
+0
+
+### T21 | daftar ulasan kelas 1 -> meta has_more/next_before
+{'jumlah': 1, 'meta': {'has_more': False, 'limit': 1, 'next_before': ''}}
+
+### T22 | ringkasan ulasan kelas 1
+{'course_id': 1, 'count': 1, 'average_rating': 5, 'distribution': {'1': 0, '2': 0, '3': 0, '4': 0, '5': 1}, 'top_tags': [{'tag': 'dosen-jelas', 'total': 1}, {'tag': 'tugas-banyak', 'total': 1}]}
+
+=== selesai ===
+
+### T12 (ulang) | 30 mahasiswa berbeda serentak menilai REVIEW1 -> harap 30x200
+kondisi: REVIEW2 sudah terhapus oleh T15, sehingga uji 30-user dijalankan pada REVIEW1
+helpful_count sebelum: 1
+kode status: 200 x30
+helpful_count sesudah: 31
+verifikasi mongosh: helpful_by = 31 elemen, unik = 31
