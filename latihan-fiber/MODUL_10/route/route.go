@@ -62,6 +62,7 @@ func Register(app *fiber.App, deps Dependencies) {
 	students.Get("/:id/portfolio", deps.PortfolioService.Get)
 	students.Put("/:id/portfolio", deps.PortfolioService.Put)
 	students.Post("/:id/portfolio/projects", deps.PortfolioService.AddProject)
+	students.Delete("/:id/portfolio/projects/:projectId", deps.PortfolioService.DeleteProject)
 
 	users := api.Group("/users",
 		middleware.RequireJSON,

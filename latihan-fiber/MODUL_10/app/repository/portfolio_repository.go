@@ -26,6 +26,7 @@ type PortfolioRepository interface {
 	FindByStudent(ctx context.Context, studentID int) (model.Portfolio, error)
 	Replace(ctx context.Context, studentID int, p model.Portfolio) (model.Portfolio, error)
 	AddProject(ctx context.Context, studentID int, p model.Project) (model.Portfolio, error)
+	DeleteProject(ctx context.Context, studentID int, projectID string) (model.Portfolio, error)
 }
 
 // portfolioDocument adalah bentuk portofolio SEBAGAIMANA TERSIMPAN di MongoDB.
@@ -240,4 +241,42 @@ func (r *portfolioMongoRepository) AddProject(ctx context.Context, studentID int
 		return model.Portfolio{}, ErrNotFound
 	}
 	return model.Portfolio{}, ErrProjectLimit
+}
+
+// DeleteProject menghapus satu proyek dari array projects dengan $pull.
+//
+// Pencarian proyek ditulis di dalam filter ({student_id, projects._id}),
+// sehingga pemeriksaan keberadaan dan penghapusan terjadi dalam satu operasi.
+// Bila tidak ada yang cocok, CountDocuments membedakan "portofolionya tidak
+// ada" dari "portofolio ada, tetapi proyeknya tidak" — pola whyNoMatch.
+func (r *portfolioMongoRepository) DeleteProject(ctx context.Context, studentID int, projectID string) (model.Portfolio, error) {
+	oid, err := bson.ObjectIDFromHex(projectID)
+	if err != nil {
+		return model.Portfolio{}, ErrInvalidID
+	}
+
+	var updated portfolioDocument
+	err = r.coll.FindOneAndUpdate(ctx,
+		bson.M{"student_id": studentID, "projects._id": oid},
+		bson.M{
+			"$pull": bson.M{"projects": bson.M{"_id": oid}},
+			"$set":  bson.M{"updated_at": now()},
+		},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&updated)
+	if err == nil {
+		return updated.toModel(), nil
+	}
+	if !errors.Is(err, mongo.ErrNoDocuments) {
+		return model.Portfolio{}, fmt.Errorf("menghapus proyek: %w", err)
+	}
+
+	count, err := r.coll.CountDocuments(ctx, bson.M{"student_id": studentID})
+	if err != nil {
+		return model.Portfolio{}, fmt.Errorf("memeriksa portofolio: %w", err)
+	}
+	if count == 0 {
+		return model.Portfolio{}, ErrNotFound
+	}
+	return model.Portfolio{}, ErrProjectNotFound
 }

@@ -152,8 +152,28 @@ func (s *PortfolioService) AddProject(c *fiber.Ctx) error {
 		"/api/v1/students/"+strconv.Itoa(studentID)+"/portfolio")
 }
 
+// ---------- DELETE /students/:id/portfolio/projects/:projectId ----------
+
+func (s *PortfolioService) DeleteProject(c *fiber.Ctx) error {
+	ctx, cancel := helper.RequestContext(c)
+	defer cancel()
+
+	if _, err := s.studentOwned(ctx, c, "student:update:any"); err != nil {
+		return err
+	}
+	studentID, _ := helper.ParamID(c)
+
+	p, err := s.portfolios.DeleteProject(ctx, studentID, c.Params("projectId"))
+	if err != nil {
+		return translatePortfolioError(err, "portofolio")
+	}
+	return helper.Success(c, fiber.StatusOK, "proyek berhasil dihapus", p)
+}
+
 func translatePortfolioError(err error, entity string) error {
 	switch {
+	case errors.Is(err, repository.ErrInvalidID):
+		return helper.BadRequest("id proyek tidak valid")
 	case errors.Is(err, repository.ErrNotFound):
 		return helper.NotFound(entity + " tidak ditemukan")
 	case errors.Is(err, repository.ErrProjectLimit):
