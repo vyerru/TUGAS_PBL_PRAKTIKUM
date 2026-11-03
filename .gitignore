@@ -5,11 +5,15 @@ latihan-fiber/MODUL_7/logs/
 **/*.pdf
 *.docx
 **/*.docx
+
+# bukti uji, naskah modul, dan gambar bersifat lokal (non-kode)
+*.txt
+**/*.txt
+*.png
+**/*.png
 latihan-fiber/MODUL_10/logs/
 latihan-fiber/MODUL_10/Modul 10 - API dengan MongoDB.txt
 latihan-fiber/MODUL_10/Tugas10_434241021.md
 latihan-fiber/MODUL_10/bukti_*.txt
 latihan-fiber/MODUL_11/logs/
-latihan-fiber/MODUL_11/Modul 10 - API dengan MongoDB.txt
-latihan-fiber/MODUL_11/Tugas10_434241021.md
-latihan-fiber/MODUL_11/bukti_*.txt
+latihan-fiber/MODUL_11/bukti/

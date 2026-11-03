@@ -1,5 +1,7 @@
--- Migration 008: transactional outbox dan catatan notifikasi
---   psql -U postgres -d praktikum_backend -f migrations/008_outbox.sql
+-- Migration 009: transactional outbox dan catatan notifikasi
+--   (renumber dari 008_outbox.sql: nomor 008 sudah dipakai
+--    008_review_permissions.sql — warisan Modul 10)
+--   psql -U postgres -d praktikum_backend -f migrations/009_outbox.sql
 
 -- ---------------------------------------------------------------------
 -- outbox — "kotak surat keluar" milik database
