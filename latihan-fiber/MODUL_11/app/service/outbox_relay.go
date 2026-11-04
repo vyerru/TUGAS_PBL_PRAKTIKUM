@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -118,7 +119,11 @@ func (r *OutboxRelay) publish(ctx context.Context, e model.OutboxEvent) error {
 	job := model.NotificationJob{
 		OutboxID: e.ID, EventType: e.EventType, Payload: e.Payload,
 	}
-	task := asynq.NewTask(model.TaskSendNotification, job,
+	payload, err := json.Marshal(job)
+	if err != nil {
+		return fmt.Errorf("menyusun payload task outbox %d: %w", e.ID, err)
+	}
+	task := asynq.NewTask(model.TaskSendNotification, payload,
 		// TaskID yang diturunkan dari id outbox membuat enqueue ulang
 		// event yang sama ditolak Redis. Ini menutup celah ketika relay
 		// mati SETELAH melakukan enqueue tetapi SEBELUM sempat commit.
@@ -131,7 +136,7 @@ func (r *OutboxRelay) publish(ctx context.Context, e model.OutboxEvent) error {
 		asynq.Retention(24*time.Hour),
 	)
 
-	_, err := r.queue.EnqueueContext(ctx, task)
+	_, err = r.queue.EnqueueContext(ctx, task)
 	if errors.Is(err, asynq.ErrTaskIDConflict) {
 		// Sudah pernah di-enqueue pada putaran sebelumnya. Bagi relay,
 		// itu sama dengan berhasil.
