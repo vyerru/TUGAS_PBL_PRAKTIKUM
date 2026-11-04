@@ -78,7 +78,7 @@ func (w *NotificationWorker) HandleSend(ctx context.Context, t *asynq.Task) erro
 		//     berikutnya masih dapat mengirim;
 		//   - pengiriman sukses -> claim di-commit -> attempt berikutnya
 		//     melihat claim ini dan tidak mengirim lagi.
-		claimed, err := w.notifications.Claim(ctx, model.Notification{
+		claimed, err := w.notifications.WithTx(tx).Claim(ctx, model.Notification{
 			OutboxID: job.OutboxID, UserID: user.ID, Channel: "email",
 			Subject: msg.Subject, Body: msg.Body,
 		})
