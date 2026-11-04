@@ -55,7 +55,7 @@ func NewLogMailer(path string, delay time.Duration, failEvery int) (Mailer, erro
 	}
 	// Pointer, bukan nilai: mutex dan counter attempt harus dimiliki
 	// bersama oleh seluruh goroutine worker, bukan disalin per pemanggilan.
-	return LogMailer{path: path, delay: delay, failEvery: int64(failEvery)}, nil
+	return &LogMailer{path: path, delay: delay, failEvery: int64(failEvery)}, nil
 }
 
 func (m *LogMailer) Send(ctx context.Context, msg model.Message) error {
