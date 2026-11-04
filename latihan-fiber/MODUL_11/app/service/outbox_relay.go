@@ -95,11 +95,14 @@ func (r *OutboxRelay) RelayOnce(ctx context.Context) (int, error) {
 			// berikutnya pun pasti gagal; tidak ada gunanya dicoba satu per
 			// satu. Yang belum di-publish tetap NULL dan diambil lagi pada
 			// putaran berikutnya.
-			ids = append(ids, e.ID)
 			if err := r.publish(ctx, e); err != nil {
 				enqueueErr = err
 				break
 			}
+			// Hanya dicatat SETELAH enqueue berhasil. Bila id dimasukkan
+			// lebih dulu, event yang gagal ikut ditandai published dan
+			// hilang selamanya.
+			ids = append(ids, e.ID)
 		}
 
 		// Hanya event yang SUDAH berhasil di-enqueue yang ditandai.
