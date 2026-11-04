@@ -47,7 +47,7 @@ func NewNotificationWorker(
 // worker mati setelah mengirim email tetapi sebelum sempat melapor ke Redis.
 // Karena itu handler ini harus idempoten: menjalankannya dua kali untuk
 // task yang sama harus berakibat sama dengan menjalankannya sekali.
-func (w *NotificationWorker) HandleSend(ctx context.Context, t asynq.Task) error {
+func (w *NotificationWorker) HandleSend(ctx context.Context, t *asynq.Task) error {
 	var job model.NotificationJob
 	if err := json.Unmarshal(t.Payload(), &job); err != nil {
 		return fmt.Errorf("%w: payload task rusak: %v", asynq.SkipRetry, err)
