@@ -93,7 +93,7 @@ func (w *NotificationWorker) HandleSend(ctx context.Context, t *asynq.Task) erro
 	})
 
 	if errors.Is(err, helper.ErrPermanentDelivery) {
-		return fmt.Errorf("%v: %w", asynq.SkipRetry, err)
+		return fmt.Errorf("%w: %w", asynq.SkipRetry, err)
 	}
 	if err != nil {
 		return err
