@@ -27,6 +27,11 @@ type CourseRepository interface {
 	// IsEnrolled dipakai layer lain — misalnya layanan ulasan di MongoDB — yang
 	// perlu tahu apakah seorang mahasiswa terdaftar di sebuah kelas.
 	IsEnrolled(ctx context.Context, courseID, userID int) (bool, error)
+
+	// ListParticipantIDs dipakai relay untuk memecah event perubahan kuota
+	// menjadi satu task per peserta. Hasilnya berurutan menaik agar urutan
+	// task selalu sama setiap kali event yang sama diproses ulang.
+	ListParticipantIDs(ctx context.Context, courseID int) ([]int, error)
 }
 
 var (
@@ -275,4 +280,28 @@ func (r *coursePostgresRepository) IsEnrolled(ctx context.Context, courseID, use
 		return false, fmt.Errorf("memeriksa pendaftaran: %w", err)
 	}
 	return exists, nil
+}
+
+// ListParticipantIDs mengembalikan id seluruh peserta sebuah kelas.
+//
+// Dipanggil relay DI DALAM transaction yang sama dengan FetchUnpublished,
+// sehingga daftar penerima yang dipakai untuk memecah event adalah daftar
+// yang konsisten pada saat event itu diproses.
+func (r *coursePostgresRepository) ListParticipantIDs(ctx context.Context, courseID int) ([]int, error) {
+	rows, err := r.db.Query(ctx,
+		"SELECT user_id FROM enrollments WHERE course_id = $1 ORDER BY user_id", courseID)
+	if err != nil {
+		return nil, fmt.Errorf("mengambil peserta kelas: %w", err)
+	}
+	defer rows.Close()
+
+	ids := []int{}
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("membaca peserta kelas: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }

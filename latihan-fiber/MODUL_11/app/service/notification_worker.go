@@ -52,21 +52,33 @@ func (w *NotificationWorker) HandleSend(ctx context.Context, t *asynq.Task) erro
 	if err := json.Unmarshal(t.Payload(), &job); err != nil {
 		return fmt.Errorf("%w: payload task rusak: %v", asynq.SkipRetry, err)
 	}
-	var event model.EnrollmentEvent
-	if err := json.Unmarshal(job.Payload, &event); err != nil {
-		return fmt.Errorf("%w: payload event %d rusak: %v", asynq.SkipRetry, job.OutboxID, err)
+
+	// Penerima bisa datang dari dua tempat:
+	//   - job.RecipientID, untuk event yang dipecah per mahasiswa
+	//     (course.quota_changed);
+	//   - event.UserID di dalam payload, untuk event KRS biasa.
+	recipientID := job.RecipientID
+	if recipientID == 0 {
+		var event model.EnrollmentEvent
+		if err := json.Unmarshal(job.Payload, &event); err != nil {
+			return fmt.Errorf("%w: payload event %d rusak: %v", asynq.SkipRetry, job.OutboxID, err)
+		}
+		recipientID = event.UserID
+	}
+	if recipientID <= 0 {
+		return fmt.Errorf("%w: event %d tidak menyebutkan penerima", asynq.SkipRetry, job.OutboxID)
 	}
 
-	user, err := w.users.FindByID(ctx, event.UserID)
+	user, err := w.users.FindByID(ctx, recipientID)
 	if errors.Is(err, repository.ErrNotFound) {
 		// Akunnya sudah dihapus. Melakukan retry tidak akan memunculkannya.
-		return fmt.Errorf("%w: user %d tidak ditemukan", asynq.SkipRetry, event.UserID)
+		return fmt.Errorf("%w: user %d tidak ditemukan", asynq.SkipRetry, recipientID)
 	}
 	if err != nil {
 		return err // database sedang bermasalah: layak di-retry
 	}
 
-	msg, err := BuildMessage(job.EventType, event, user)
+	msg, err := BuildMessage(job.EventType, job.Payload, user)
 	if err != nil {
 		return fmt.Errorf("%w: %v", asynq.SkipRetry, err)
 	}
@@ -102,6 +114,7 @@ func (w *NotificationWorker) HandleSend(ctx context.Context, t *asynq.Task) erro
 	retry, _ := asynq.GetRetryCount(ctx)
 	w.logger.Info("notification_processed",
 		slog.Int64("outbox_id", job.OutboxID),
+		slog.Int("user_id", user.ID),
 		slog.String("event", job.EventType),
 		slog.Int("retry", retry),
 		slog.Bool("already_sent", alreadySent))

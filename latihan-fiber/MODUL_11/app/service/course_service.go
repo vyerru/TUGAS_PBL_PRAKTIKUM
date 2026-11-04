@@ -308,9 +308,28 @@ func (s *CourseService) UpdateQuota(c *fiber.Ctx) error {
 		return helper.Validation(errs)
 	}
 
-	// Satu pernyataan UPDATE saja, sehingga tidak perlu WithTx:
-	// setiap pernyataan tunggal di PostgreSQL sudah atomik dengan sendirinya.
-	updated, err := s.courses.UpdateQuota(ctx, id, req.Quota, req.Version)
+	var updated model.Course
+	err := s.tx.WithTx(ctx, func(tx repository.DBTX) error {
+		repo := s.courses.WithTx(tx)
+
+		course, err := repo.UpdateQuota(ctx, id, req.Quota, req.Version)
+		if err != nil {
+			return err
+		}
+		updated = course
+
+		// Perubahan kuota kini dua pernyataan: UPDATE courses dan INSERT
+		// outbox. Keduanya HARUS berada di satu transaction. Bila UPDATE
+		// berhasil tetapi INSERT gagal (atau sebaliknya), database akan
+		// menyimpan perubahan tanpa notifikasi, atau mencatat notifikasi
+		// untuk perubahan yang tidak pernah terjadi.
+		return s.outbox.WithTx(tx).Insert(ctx, model.EventCourseQuotaChanged, model.CourseQuotaEvent{
+			CourseID:   course.ID,
+			CourseCode: course.Code,
+			CourseName: course.Name,
+			Quota:      course.Quota,
+		})
+	})
 	if err != nil {
 		return translateCourseError(err)
 	}

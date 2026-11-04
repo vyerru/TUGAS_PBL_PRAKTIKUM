@@ -28,6 +28,7 @@ type TaskEnqueuer interface {
 // hanya tertunda, tidak hilang.
 type OutboxRelay struct {
 	outbox   repository.OutboxRepository
+	courses  repository.CourseRepository
 	tx       *repository.TxManager
 	queue    TaskEnqueuer
 	logger   *slog.Logger
@@ -37,14 +38,15 @@ type OutboxRelay struct {
 
 func NewOutboxRelay(
 	outbox repository.OutboxRepository,
+	courses repository.CourseRepository,
 	tx *repository.TxManager,
 	queue TaskEnqueuer,
 	logger *slog.Logger,
 	interval time.Duration,
 	batch int,
 ) *OutboxRelay {
-	return &OutboxRelay{outbox: outbox, tx: tx, queue: queue, logger: logger,
-		interval: interval, batch: batch}
+	return &OutboxRelay{outbox: outbox, courses: courses, tx: tx, queue: queue,
+		logger: logger, interval: interval, batch: batch}
 }
 
 // Run berjalan terus sampai ctx dibatalkan.
@@ -95,7 +97,7 @@ func (r *OutboxRelay) RelayOnce(ctx context.Context) (int, error) {
 			// berikutnya pun pasti gagal; tidak ada gunanya dicoba satu per
 			// satu. Yang belum di-publish tetap NULL dan diambil lagi pada
 			// putaran berikutnya.
-			if err := r.publish(ctx, e); err != nil {
+			if err := r.publishEvent(ctx, tx, e); err != nil {
 				enqueueErr = err
 				break
 			}
@@ -118,19 +120,59 @@ func (r *OutboxRelay) RelayOnce(ctx context.Context) (int, error) {
 	return published, enqueueErr
 }
 
-func (r *OutboxRelay) publish(ctx context.Context, e model.OutboxEvent) error {
+// publishEvent mengubah SATU baris outbox menjadi satu atau banyak task.
+//
+// Event KRS biasa hanya punya satu penerima, jadi satu task sudah cukup.
+// course.quota_changed berlaku untuk seluruh peserta: event itu dipecah
+// menjadi satu task per mahasiswa. Keputusan ini diambil di relay, bukan di
+// worker, karena hanya dengan begitu retry milik satu task tidak
+// mengirim ulang email mahasiswa lain.
+func (r *OutboxRelay) publishEvent(ctx context.Context, tx repository.DBTX, e model.OutboxEvent) error {
+	if e.EventType != model.EventCourseQuotaChanged {
+		return r.publish(ctx, e, 0)
+	}
+
+	var event model.CourseQuotaEvent
+	if err := json.Unmarshal(e.Payload, &event); err != nil {
+		return fmt.Errorf("payload outbox %d rusak: %w", e.ID, err)
+	}
+
+	// Daftar peserta dibaca di dalam transaction yang sama dengan
+	// FetchUnpublished, sehingga susunan penerima konsisten dengan event.
+	recipients, err := r.courses.WithTx(tx).ListParticipantIDs(ctx, event.CourseID)
+	if err != nil {
+		return fmt.Errorf("mengambil peserta kelas %d: %w", event.CourseID, err)
+	}
+
+	for _, userID := range recipients {
+		if err := r.publish(ctx, e, userID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *OutboxRelay) publish(ctx context.Context, e model.OutboxEvent, recipientID int) error {
 	job := model.NotificationJob{
 		OutboxID: e.ID, EventType: e.EventType, Payload: e.Payload,
+		RecipientID: recipientID,
 	}
 	payload, err := json.Marshal(job)
 	if err != nil {
 		return fmt.Errorf("menyusun payload task outbox %d: %w", e.ID, err)
 	}
+
+	// TaskID diturunkan dari id outbox DAN id penerima. Untuk event KRS
+	// biasa recipientID nol sehingga TaskID-nya tetap "outbox-<id>".
+	// Enqueue ulang event yang sama ditolak Redis, termasuk bila relay mati
+	// SETELAH enqueue tetapi SEBELUM sempat commit.
+	taskID := fmt.Sprintf("outbox-%d", e.ID)
+	if recipientID > 0 {
+		taskID = fmt.Sprintf("outbox-%d-u%d", e.ID, recipientID)
+	}
+
 	task := asynq.NewTask(model.TaskSendNotification, payload,
-		// TaskID yang diturunkan dari id outbox membuat enqueue ulang
-		// event yang sama ditolak Redis. Ini menutup celah ketika relay
-		// mati SETELAH melakukan enqueue tetapi SEBELUM sempat commit.
-		asynq.TaskID(fmt.Sprintf("outbox-%d", e.ID)),
+		asynq.TaskID(taskID),
 		asynq.Queue(model.QueueNotifications),
 		asynq.MaxRetry(5),
 		asynq.Timeout(30*time.Second),

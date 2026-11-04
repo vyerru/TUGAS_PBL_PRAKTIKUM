@@ -33,11 +33,12 @@ func startWorker(ctx context.Context, logger *slog.Logger, pool *pgxpool.Pool) f
 	}
 
 	outboxRepository := repository.NewOutboxRepository(pool)
+	courseRepository := repository.NewCourseRepository(pool)
 	txManager := repository.NewTxManager(pool)
 
 	client := asynq.NewClient(config.RedisOpt())
 	relay := service.NewOutboxRelay(
-		outboxRepository, txManager, client, logger,
+		outboxRepository, courseRepository, txManager, client, logger,
 		time.Duration(config.GetEnvInt("RELAY_INTERVAL_MS", 1000))*time.Millisecond,
 		config.GetEnvInt("RELAY_BATCH", 100),
 	)

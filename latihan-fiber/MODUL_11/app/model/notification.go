@@ -12,6 +12,10 @@ const (
 	EventEnrollmentCreated = "enrollment.created"
 	EventEnrollmentDropped = "enrollment.dropped"
 	EventEnrollmentSwapped = "enrollment.swapped"
+
+	// EventCourseQuotaChanged adalah SATU event yang harus menghasilkan
+	// BANYAK notifikasi: satu untuk setiap peserta kelas.
+	EventCourseQuotaChanged = "course.quota_changed"
 )
 
 // TaskSendNotification adalah nama JENIS task (task type); worker memakainya untuk
@@ -37,6 +41,18 @@ type EnrollmentEvent struct {
 	FromCourseName string `json:"from_course_name,omitempty"`
 }
 
+// CourseQuotaEvent adalah isi event perubahan kuota.
+//
+// Event ini TIDAK membawa user_id: perubahannya berlaku untuk seluruh
+// peserta kelas, bukan untuk satu mahasiswa. Daftar penerima dibaca dari
+// tabel enrollments pada saat relay memecah event menjadi task.
+type CourseQuotaEvent struct {
+	CourseID   int    `json:"course_id"`
+	CourseCode string `json:"course_code"`
+	CourseName string `json:"course_name"`
+	Quota      int    `json:"quota"`
+}
+
 // OutboxEvent adalah satu baris tabel outbox.
 type OutboxEvent struct {
 	ID        int64
@@ -57,6 +73,14 @@ type NotificationJob struct {
 	OutboxID  int64           `json:"outbox_id"`
 	EventType string          `json:"event_type"`
 	Payload   json.RawMessage `json:"payload"`
+
+	// RecipientID hanya dipakai event yang menghasilkan banyak penerima,
+	// seperti course.quota_changed. Relay mengisi satu nilai per task
+	// sehingga setiap mahasiswa mendapat tasknya sendiri: kegagalan task
+	// milik satu mahasiswa tidak memaksa pengiriman ulang task mahasiswa
+	// lain. Untuk event KRS biasa nilainya nol dan penerima dibaca dari
+	// payload (event.UserID).
+	RecipientID int `json:"recipient_id,omitempty"`
 }
 
 // Message adalah pesan yang siap dikirim, tidak bergantung pada cara

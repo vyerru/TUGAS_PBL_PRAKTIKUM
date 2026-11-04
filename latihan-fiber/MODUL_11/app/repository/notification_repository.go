@@ -38,8 +38,12 @@ func (r *notificationPostgresRepository) WithTx(tx DBTX) NotificationRepository 
 // penolakan itu datang sebagai error 23505 — task-nya dianggap GAGAL dan
 // di-retry, padahal yang benar adalah "sudah dikirim, lewati saja".
 //
+// Idempotency key-nya adalah pasangan (outbox_id, user_id), bukan outbox_id
+// saja: satu event perubahan kuota harus sampai ke seluruh peserta, tetapi
+// setiap peserta hanya boleh menerima SATU email untuk event itu.
+//
 // Dengan ON CONFLICT, bila worker lain sedang memegang baris dengan
-// outbox_id yang sama tetapi belum commit, pernyataan ini MENUNGGU sampai
+// pasangan yang sama tetapi belum commit, pernyataan ini MENUNGGU sampai
 // worker itu selesai — lalu melewatinya bila worker itu commit, atau
 // melanjutkan bila worker itu rollback.
 func (r *notificationPostgresRepository) Claim(ctx context.Context, n model.Notification) (bool, error) {
@@ -47,7 +51,7 @@ func (r *notificationPostgresRepository) Claim(ctx context.Context, n model.Noti
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO notifications (outbox_id, user_id, channel, subject, body)
 		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (outbox_id) DO NOTHING
+		ON CONFLICT (outbox_id, user_id) DO NOTHING
 		RETURNING id`,
 		n.OutboxID, n.UserID, n.Channel, n.Subject, n.Body).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
