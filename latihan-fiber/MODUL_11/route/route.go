@@ -7,23 +7,25 @@ import (
 	"MODUL_11/app/service"
 	"MODUL_11/helper"
 	"MODUL_11/middleware"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type Dependencies struct {
-	Pool           *pgxpool.Pool
-	Mongo          *mongo.Client
-	JWT            *helper.JWTManager
-	Permissions    *helper.PermissionSet
-	AuthService    *service.AuthService
-	StudentService *service.StudentService
-	UserService    *service.UserService
+	Pool              *pgxpool.Pool
+	Mongo             *mongo.Client
+	JWT               *helper.JWTManager
+	Permissions       *helper.PermissionSet
+	AuthService       *service.AuthService
+	StudentService    *service.StudentService
+	UserService       *service.UserService
 	CourseService     *service.CourseService
 	SupervisorService *service.SupervisorService
 	ReviewService     *service.ReviewService
 	PortfolioService  *service.PortfolioService
+
+	NotificationService *service.NotificationService
 }
 
 func Register(app *fiber.App, deps Dependencies) {
@@ -142,6 +144,18 @@ func Register(app *fiber.App, deps Dependencies) {
 	reviews.Delete("/:id", deps.ReviewService.Delete)
 	reviews.Post("/:id/replies", deps.ReviewService.Reply)
 	reviews.Post("/:id/helpful", deps.ReviewService.MarkHelpful)
+
+	// --- notifikasi (diisi oleh worker, dibaca lewat API) ---
+	notifications := api.Group("/notifications",
+		middleware.RequireJSON,
+		middleware.RequireAuth(deps.JWT))
+	notifications.Get("/mine", deps.NotificationService.Mine)
+
+	admin := api.Group("/admin",
+		middleware.RequireJSON,
+		middleware.RequireAuth(deps.JWT))
+	admin.Get("/queue", middleware.RequirePermission(perms, "queue:monitor"),
+		deps.NotificationService.Monitor)
 }
 
 // healthCheck kini memeriksa DUA database. Aplikasi dianggap sehat hanya

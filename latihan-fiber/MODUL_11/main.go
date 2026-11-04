@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"MODUL_11/app/repository"
@@ -112,6 +113,7 @@ func startAPI(logger *slog.Logger, pool *pgxpool.Pool) *fiber.App {
 	roleRepository := repository.NewRoleRepository(pool)
 	courseRepository := repository.NewCourseRepository(pool)
 	outboxRepository := repository.NewOutboxRepository(pool)
+	notificationRepository := repository.NewNotificationRepository(pool)
 	supervisorRepository := repository.NewSupervisorRepository(pool)
 	txManager := repository.NewTxManager(pool)
 	reviewRepository := repository.NewReviewRepository(mongoDB)
@@ -147,6 +149,11 @@ func startAPI(logger *slog.Logger, pool *pgxpool.Pool) *fiber.App {
 		time.Duration(config.GetEnvInt("JWT_REFRESH_TTL_DAYS", 7))*24*time.Hour,
 	)
 
+	// Inspector hanya MEMBACA keadaan queue untuk endpoint admin. Ia tidak
+	// menghubungi Redis saat dibuat, sehingga API tetap dapat menyala
+	// walaupun Redis sedang mati.
+	inspector := asynq.NewInspector(config.RedisOpt())
+
 	app := config.NewApp(logger, route.Dependencies{
 		Pool:              pool,
 		Mongo:             mongoClient,
@@ -159,12 +166,16 @@ func startAPI(logger *slog.Logger, pool *pgxpool.Pool) *fiber.App {
 		SupervisorService: supervisorService,
 		ReviewService:     reviewService,
 		PortfolioService:  portfolioService,
+		NotificationService: service.NewNotificationService(
+			notificationRepository, outboxRepository, inspector,
+		),
 	})
 
 	// Sumber daya milik API ditutup setelah server HTTP berhenti.
 	app.Hooks().OnShutdown(func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		_ = inspector.Close()
 		return mongoClient.Disconnect(ctx)
 	})
 
