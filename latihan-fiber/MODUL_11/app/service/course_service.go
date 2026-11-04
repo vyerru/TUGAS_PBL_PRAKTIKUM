@@ -141,7 +141,7 @@ func (s *CourseService) Enroll(c *fiber.Ctx) error {
 		//    Urutan di dalam transaction tidak mengubah hasil akhir: bila
 		//    langkah 5 gagal, catatan ini ikut dibatalkan bersama
 		//    penambahan kursi pada langkah 3.
-		if err := s.outbox.Insert(ctx, model.EventEnrollmentCreated, model.EnrollmentEvent{
+		if err := s.outbox.WithTx(tx).Insert(ctx, model.EventEnrollmentCreated, model.EnrollmentEvent{
 			UserID: current.UserID, CourseID: enrolled.ID,
 			CourseCode: enrolled.Code, CourseName: enrolled.Name,
 		}); err != nil {
